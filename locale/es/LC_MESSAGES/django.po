@@ -1,0 +1,304 @@
+# Spanish (Colombia) translations for Talent HCM
+# Copyright (C) 2026 Nomiweb
+msgid ""
+msgstr ""
+"Project-Id-Version: talent-hcm 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-04-19 00:00+0000\n"
+"PO-Revision-Date: 2026-04-19 00:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: Spanish (Colombia)\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+# ── Core ──────────────────────────────────────────────────────────────────────
+msgid "tenant"
+msgstr "empresa"
+
+msgid "Tenant"
+msgstr "Empresa"
+
+msgid "Tenants"
+msgstr "Empresas"
+
+# ── Personnel ─────────────────────────────────────────────────────────────────
+msgid "Employee"
+msgstr "Empleado"
+
+msgid "Employees"
+msgstr "Empleados"
+
+msgid "Department"
+msgstr "Departamento"
+
+msgid "Departments"
+msgstr "Departamentos"
+
+msgid "Contract"
+msgstr "Contrato"
+
+msgid "Contracts"
+msgstr "Contratos"
+
+msgid "Document"
+msgstr "Documento"
+
+msgid "Documents"
+msgstr "Documentos"
+
+msgid "active"
+msgstr "activo"
+
+msgid "inactive"
+msgstr "inactivo"
+
+msgid "suspended"
+msgstr "suspendido"
+
+msgid "retired"
+msgstr "retirado"
+
+msgid "First name"
+msgstr "Primer nombre"
+
+msgid "Second name"
+msgstr "Segundo nombre"
+
+msgid "First last name"
+msgstr "Primer apellido"
+
+msgid "Second last name"
+msgstr "Segundo apellido"
+
+msgid "Document number"
+msgstr "Número de documento"
+
+msgid "Date of birth"
+msgstr "Fecha de nacimiento"
+
+msgid "Employee number"
+msgstr "Número de empleado"
+
+msgid "Start date"
+msgstr "Fecha de inicio"
+
+msgid "End date"
+msgstr "Fecha de fin"
+
+msgid "Salary"
+msgstr "Salario"
+
+msgid "Position"
+msgstr "Cargo"
+
+# ── Hiring ────────────────────────────────────────────────────────────────────
+msgid "Hiring Process"
+msgstr "Proceso de Selección"
+
+msgid "Hiring Processes"
+msgstr "Procesos de Selección"
+
+msgid "Candidate"
+msgstr "Candidato"
+
+msgid "Candidates"
+msgstr "Candidatos"
+
+msgid "Onboarding"
+msgstr "Onboarding"
+
+msgid "open"
+msgstr "abierto"
+
+msgid "in_review"
+msgstr "en revisión"
+
+msgid "filled"
+msgstr "cubierto"
+
+msgid "cancelled"
+msgstr "cancelado"
+
+msgid "hired"
+msgstr "contratado"
+
+msgid "rejected"
+msgstr "rechazado"
+
+# ── Quality ───────────────────────────────────────────────────────────────────
+msgid "Quality Process"
+msgstr "Proceso de Calidad"
+
+msgid "Quality Processes"
+msgstr "Procesos de Calidad"
+
+msgid "Quality Document"
+msgstr "Documento de Calidad"
+
+msgid "Quality Documents"
+msgstr "Documentos de Calidad"
+
+msgid "Internal Audit"
+msgstr "Auditoría Interna"
+
+msgid "Internal Audits"
+msgstr "Auditorías Internas"
+
+msgid "Non Conformity"
+msgstr "No Conformidad"
+
+msgid "Non Conformities"
+msgstr "No Conformidades"
+
+msgid "Continuous Improvement"
+msgstr "Mejora Continua"
+
+msgid "Continuous Improvements"
+msgstr "Mejoras Continuas"
+
+msgid "Audit Finding"
+msgstr "Hallazgo de Auditoría"
+
+msgid "Audit Findings"
+msgstr "Hallazgos de Auditoría"
+
+# ── Performance ───────────────────────────────────────────────────────────────
+msgid "OKR Period"
+msgstr "Período OKR"
+
+msgid "OKR Periods"
+msgstr "Períodos OKR"
+
+msgid "Objective"
+msgstr "Objetivo"
+
+msgid "Objectives"
+msgstr "Objetivos"
+
+msgid "Key Result"
+msgstr "Resultado Clave"
+
+msgid "Key Results"
+msgstr "Resultados Clave"
+
+msgid "KPI"
+msgstr "KPI"
+
+msgid "KPIs"
+msgstr "KPIs"
+
+msgid "KPI Measurement"
+msgstr "Medición de KPI"
+
+msgid "KPI Measurements"
+msgstr "Mediciones de KPI"
+
+msgid "on_track"
+msgstr "en camino"
+
+msgid "at_risk"
+msgstr "en riesgo"
+
+msgid "behind"
+msgstr "rezagado"
+
+msgid "completed"
+msgstr "completado"
+
+# ── Catalogs ──────────────────────────────────────────────────────────────────
+msgid "Country"
+msgstr "País"
+
+msgid "Countries"
+msgstr "Países"
+
+msgid "City"
+msgstr "Ciudad"
+
+msgid "Cities"
+msgstr "Ciudades"
+
+msgid "Bank"
+msgstr "Banco"
+
+msgid "Banks"
+msgstr "Bancos"
+
+msgid "Work Location"
+msgstr "Ubicación de Trabajo"
+
+msgid "Work Locations"
+msgstr "Ubicaciones de Trabajo"
+
+msgid "Work Center"
+msgstr "Centro de Trabajo"
+
+msgid "Work Centers"
+msgstr "Centros de Trabajo"
+
+msgid "Cost Center"
+msgstr "Centro de Costo"
+
+msgid "Cost Centers"
+msgstr "Centros de Costo"
+
+# ── Common UI strings ─────────────────────────────────────────────────────────
+msgid "Search"
+msgstr "Buscar"
+
+msgid "Save"
+msgstr "Guardar"
+
+msgid "Cancel"
+msgstr "Cancelar"
+
+msgid "Delete"
+msgstr "Eliminar"
+
+msgid "Edit"
+msgstr "Editar"
+
+msgid "Create"
+msgstr "Crear"
+
+msgid "Details"
+msgstr "Detalle"
+
+msgid "Status"
+msgstr "Estado"
+
+msgid "Actions"
+msgstr "Acciones"
+
+msgid "Name"
+msgstr "Nombre"
+
+msgid "Code"
+msgstr "Código"
+
+msgid "Description"
+msgstr "Descripción"
+
+msgid "Responsible"
+msgstr "Responsable"
+
+msgid "Due date"
+msgstr "Fecha límite"
+
+msgid "Priority"
+msgstr "Prioridad"
+
+msgid "low"
+msgstr "baja"
+
+msgid "medium"
+msgstr "media"
+
+msgid "high"
+msgstr "alta"
+
+msgid "critical"
+msgstr "crítica"
