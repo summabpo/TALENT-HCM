@@ -1,0 +1,19 @@
+{
+  "nav": {
+    "personnel": "Personnel",
+    "hiring": "Hiring",
+    "quality": "Quality",
+    "performance": "Performance",
+    "catalogs": "Catalogs"
+  },
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "active": "Active",
+    "inactive": "Inactive"
+  }
+}

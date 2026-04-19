@@ -1,0 +1,71 @@
+services:
+  backend:
+    build: .
+    container_name: talent-backend
+    restart: always
+    env_file: .env
+    volumes:
+      - talent-media:/app/media
+      - talent-static:/app/staticfiles
+    depends_on:
+      redis:
+        condition: service_started
+    networks:
+      - talent-network
+    ports:
+      - "127.0.0.1:8001:8000"
+
+  frontend:
+    build: ./frontend
+    container_name: talent-frontend
+    restart: always
+    volumes:
+      - talent-static:/app/staticfiles:ro
+      - talent-media:/app/media:ro
+    networks:
+      - talent-network
+    ports:
+      - "127.0.0.1:8002:80"
+
+  celery:
+    build: .
+    container_name: talent-celery
+    restart: always
+    env_file: .env
+    command: celery -A config worker -l info --concurrency=2
+    depends_on:
+      - backend
+      - redis
+    networks:
+      - talent-network
+
+  celery-beat:
+    build: .
+    container_name: talent-celery-beat
+    restart: always
+    env_file: .env
+    command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    depends_on:
+      - backend
+      - redis
+    networks:
+      - talent-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: talent-redis
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - talent-redis-data:/data
+    networks:
+      - talent-network
+
+volumes:
+  talent-media:
+  talent-static:
+  talent-redis-data:
+
+networks:
+  talent-network:
+    driver: bridge

@@ -1,0 +1,53 @@
+services:
+  backend:
+    build: .
+    container_name: talent-backend-dev
+    env_file: .env.dev
+    volumes:
+      - .:/app
+      - talent-media:/app/media
+    command: python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8001:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - talent-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: talent-postgres-dev
+    environment:
+      POSTGRES_DB: db_talent
+      POSTGRES_USER: talent_user
+      POSTGRES_PASSWORD: talent_dev_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - talent-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U talent_user"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - talent-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: talent-redis-dev
+    ports:
+      - "6380:6379"
+    networks:
+      - talent-network
+
+volumes:
+  talent-db-data:
+  talent-media:
+
+networks:
+  talent-network:
+    driver: bridge

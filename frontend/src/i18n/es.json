@@ -1,0 +1,19 @@
+{
+  "nav": {
+    "personnel": "Personal",
+    "hiring": "Contratación",
+    "quality": "Calidad",
+    "performance": "Desempeño",
+    "catalogs": "Catálogos"
+  },
+  "common": {
+    "loading": "Cargando...",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "search": "Buscar",
+    "active": "Activo",
+    "inactive": "Inactivo"
+  }
+}
