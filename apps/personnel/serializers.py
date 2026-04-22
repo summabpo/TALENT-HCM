@@ -1,6 +1,19 @@
 from rest_framework import serializers
+from apps.catalogs.models import DocumentType, Profession
 from apps.core.serializers import TenantSerializer
 from .models import Department, Employee, Contract, EmployeeDocument, EmployeeHistory
+
+
+class DocumentTypeNestedSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DocumentType
+        fields = ['id', 'name', 'code']
+
+
+class ProfessionNestedSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profession
+        fields = ['id', 'name']
 
 
 # ─── Department ──────────────────────────────────────────────────────────────
@@ -55,6 +68,8 @@ class EmployeeListSerializer(TenantSerializer):
 class EmployeeDetailSerializer(TenantSerializer):
     """Full employee detail including computed fields."""
     full_name = serializers.CharField(read_only=True)
+    document_type = DocumentTypeNestedSerializer(read_only=True)
+    profession = ProfessionNestedSerializer(read_only=True)
 
     class Meta(TenantSerializer.Meta):
         model = Employee
@@ -77,6 +92,8 @@ class EmployeeDetailSerializer(TenantSerializer):
             'document_expedition_date', 'document_expedition_city',
             # Uniform
             'uniform_pants', 'uniform_shirt', 'uniform_shoes',
+            # Military
+            'num_libreta_militar',
             # Emergency
             'emergency_contact_name', 'emergency_contact_phone',
             'emergency_contact_relationship',
@@ -108,6 +125,7 @@ class EmployeeWriteSerializer(TenantSerializer):
             'profession', 'education_level',
             'document_expedition_date', 'document_expedition_city',
             'uniform_pants', 'uniform_shirt', 'uniform_shoes',
+            'num_libreta_militar',
             'emergency_contact_name', 'emergency_contact_phone',
             'emergency_contact_relationship',
             'photo',
@@ -117,6 +135,10 @@ class EmployeeWriteSerializer(TenantSerializer):
         ]
 
     def validate(self, attrs):
+        # CharField en modelo sin null=True: el cliente no debe enviar null (usa '').
+        if 'socioeconomic_stratum' in attrs and attrs['socioeconomic_stratum'] is None:
+            attrs['socioeconomic_stratum'] = ''
+
         tenant = self.context['request'].tenant
         doc_type = attrs.get('document_type', getattr(self.instance, 'document_type', None))
         doc_num = attrs.get('document_number', getattr(self.instance, 'document_number', None))
@@ -154,7 +176,7 @@ class ContractSerializer(TenantSerializer):
             'start_date', 'end_date',
             'hiring_city',
             # Compensation
-            'salary', 'salary_type', 'salary_mode',
+            'payroll_type', 'salary', 'salary_type', 'salary_mode',
             'transport_allowance', 'payment_method', 'work_schedule',
             # Banking
             'bank', 'bank_account_number', 'bank_account_type',

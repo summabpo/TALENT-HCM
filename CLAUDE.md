@@ -4,6 +4,8 @@
 
 Talent is an HCM platform at `talent.nomiweb.co` that complements Nomiweb (payroll) and an existing ATS. Multi-tenant SaaS (2–5 pilot clients), prepared for i18n.
 
+**Extended project runbook (architecture, status, local setup, API/Vite notes):** `project_context.md` in the repo root. **Cursor short entry that links to it:** `hcmcursor.md`.
+
 ## Tech Stack
 
 - **Backend:** Python 3.12+, Django 5.x, Django REST Framework

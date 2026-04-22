@@ -14,6 +14,7 @@ class Country(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=50)
     iso_code = models.CharField(max_length=3, blank=True)
+    is_active = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'catalog_country'
@@ -31,6 +32,7 @@ class StateProvince(models.Model):
     name = models.CharField(max_length=50)
     code = models.CharField(max_length=10)
     country = models.ForeignKey(Country, on_delete=models.PROTECT)
+    is_active = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'catalog_state_province'
@@ -46,6 +48,7 @@ class City(models.Model):
     name = models.CharField(max_length=50)
     code = models.CharField(max_length=10)
     state_province = models.ForeignKey(StateProvince, on_delete=models.PROTECT)
+    is_active = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'catalog_city'
@@ -63,6 +66,7 @@ class DocumentType(models.Model):
     name = models.CharField(max_length=50)
     code = models.CharField(max_length=4)
     dian_code = models.SmallIntegerField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'catalog_document_type'
@@ -88,6 +92,7 @@ class SocialSecurityEntity(models.Model):
     name = models.CharField(max_length=120)
     entity_type = models.CharField(max_length=20, choices=SocialSecurityEntityType.choices)
     sgp_code = models.CharField(max_length=10, blank=True)
+    is_active = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'catalog_social_security_entity'
@@ -104,6 +109,7 @@ class Bank(models.Model):
     code = models.CharField(max_length=10)
     ach_code = models.CharField(max_length=10, blank=True)
     nit = models.CharField(max_length=20, blank=True)
+    is_active = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'catalog_bank'
@@ -125,6 +131,21 @@ class ContractType(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class PayrollType(models.Model):
+    """Frecuencia de liquidación de nómina. Mirrors Nomiweb: tiponómina"""
+    id = models.AutoField(primary_key=True)
+    nombre = models.CharField(max_length=40)
+    cod_dian = models.SmallIntegerField(null=True, blank=True)
+    activo = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'catalog_payroll_type'
+        ordering = ['nombre']
+
+    def __str__(self):
+        return self.nombre
 
 
 class SalaryType(models.Model):

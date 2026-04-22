@@ -5,7 +5,7 @@ from apps.core.models import TimestampedTenantModel
 from apps.core.managers import TenantManager
 from apps.catalogs.models import (
     Country, City, DocumentType, SocialSecurityEntity,
-    Bank, ContractType, SalaryType, ContributorType,
+    Bank, ContractType, PayrollType, SalaryType, ContributorType,
     ContributorSubtype, Position, CostCenter, SubCostCenter,
     WorkLocation, WorkCenter, ContractTemplate, Profession,
 )
@@ -99,6 +99,9 @@ class Employee(TimestampedTenantModel):
         related_name='employees_expedition',
     )
 
+    # Military service card (Colombia)
+    num_libreta_militar = models.CharField(max_length=10, blank=True)                   # nolibretamilitar
+
     # Uniform sizes — mirrors contratosemp dotación fields
     uniform_pants = models.CharField(max_length=10, blank=True)                         # dotpantalon
     uniform_shirt = models.CharField(max_length=10, blank=True)                         # dotcamisa
@@ -168,6 +171,9 @@ class Contract(TimestampedTenantModel):
     )
 
     # Compensation
+    payroll_type = models.ForeignKey(                                                    # tiponómina
+        PayrollType, on_delete=models.PROTECT, null=True, blank=True,
+    )
     salary = models.DecimalField(max_digits=12, decimal_places=2)                       # salario
     salary_type = models.ForeignKey(SalaryType, on_delete=models.PROTECT, null=True, blank=True)  # tiposalario
     salary_mode = models.CharField(max_length=10, choices=[                             # salariovariable

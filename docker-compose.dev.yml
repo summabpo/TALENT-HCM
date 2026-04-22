@@ -1,6 +1,9 @@
 services:
   backend:
-    build: .
+    build:
+      context: .
+      args:
+        INSTALL_DEV: "true"
     container_name: talent-backend-dev
     env_file: .env.dev
     volumes:
@@ -10,14 +13,14 @@ services:
     ports:
       - "8001:8000"
     depends_on:
-      postgres:
+      postgres-dev:
         condition: service_healthy
       redis:
         condition: service_started
     networks:
       - talent-network
 
-  postgres:
+  postgres-dev:
     image: postgres:16-alpine
     container_name: talent-postgres-dev
     environment:

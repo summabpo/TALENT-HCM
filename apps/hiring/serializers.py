@@ -107,8 +107,10 @@ class OnboardingTaskCompletionSerializer(serializers.ModelSerializer):
             'responsible_role', 'days_to_complete',
             'is_complete', 'completed_by', 'completed_at', 'notes',
         ]
-        read_only_fields = ['id', 'task', 'task_title', 'task_order',
-                            'responsible_role', 'days_to_complete', 'is_complete']
+        # task is writable so POST /task-completions/ can specify which task
+        read_only_fields = ['id', 'task_title', 'task_order',
+                            'responsible_role', 'days_to_complete',
+                            'is_complete', 'completed_at']
 
     def get_is_complete(self, obj):
         return obj.completed_at is not None
@@ -135,3 +137,5 @@ class EmployeeOnboardingSerializer(TenantSerializer):
             'progress_percentage', 'completions',
             'tenant', 'created_at', 'updated_at',
         ]
+        # employee is set from URL kwargs in perform_create; completed_at is managed automatically
+        read_only_fields = TenantSerializer.Meta.read_only_fields + ['employee', 'completed_at']

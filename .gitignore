@@ -50,6 +50,17 @@ frontend/.vite/
 htmlcov/
 .pytest_cache/
 .mypy_cache/
+frontend/playwright-report/
+frontend/test-results/
+test-results/
+# Playwright storageState (contiene tokens; se regenera con auth.setup)
+frontend/e2e/.auth/
+
+# Nested / duplicate repo checkout (no subir)
+TALENT-HCM/
+
+# Claude — ajustes solo locales
+.claude/settings.local.json
 
 # Translations (compiled)
 *.mo

@@ -1,8 +1,8 @@
-from django.db.models import Count, Avg, Q
-from rest_framework import viewsets, status
+from django.db.models import Count
+from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from apps.core.permissions import HasTenant
+from apps.core.permissions import HasTenant, HasModule
 from .models import (
     OKRPeriod, Objective, KeyResult, KeyResultUpdate,
     KPI, KPIMeasurement,
@@ -16,16 +16,46 @@ from .serializers import (
 )
 
 
+class PerformanceModulePermission(HasModule):
+    module = 'performance'
+
+
+PERF_PERMISSIONS = [HasTenant, PerformanceModulePermission]
+
+
 class OKRPeriodViewSet(viewsets.ModelViewSet):
-    permission_classes = [HasTenant]
+    permission_classes = PERF_PERMISSIONS
     serializer_class = OKRPeriodSerializer
 
     def get_queryset(self):
-        return OKRPeriod.objects.for_tenant(self.request.tenant)
+        qs = OKRPeriod.objects.for_tenant(self.request.tenant)
+        if self.request.query_params.get('active') == 'true':
+            qs = qs.filter(is_active=True)
+        return qs
+
+    @action(detail=True, methods=['get', 'post'], url_path='objectives')
+    def objectives(self, request, pk=None):
+        """List or create objectives under a specific period."""
+        period = self.get_object()
+        if request.method == 'GET':
+            qs = Objective.objects.for_tenant(request.tenant).filter(
+                period=period,
+            ).select_related('department', 'owner', 'parent').prefetch_related('key_results')
+            if level := request.query_params.get('level'):
+                qs = qs.filter(level=level)
+            if status_filter := request.query_params.get('status'):
+                qs = qs.filter(status=status_filter)
+            serializer_class = ObjectiveListSerializer if request.query_params.get('list') else ObjectiveSerializer
+            return Response(serializer_class(qs, many=True, context={'request': request}).data)
+
+        serializer = ObjectiveSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save(period=period, tenant=request.tenant)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class ObjectiveViewSet(viewsets.ModelViewSet):
-    permission_classes = [HasTenant]
+    permission_classes = PERF_PERMISSIONS
 
     def get_queryset(self):
         qs = Objective.objects.for_tenant(
@@ -33,16 +63,15 @@ class ObjectiveViewSet(viewsets.ModelViewSet):
         ).select_related('period', 'department', 'owner', 'parent').prefetch_related(
             'key_results__responsible',
         )
-        period_id = self.request.query_params.get('period')
-        if period_id:
+        # Scope to period when accessed via nested URL
+        if period_pk := self.kwargs.get('period_pk'):
+            qs = qs.filter(period_id=period_pk)
+        if period_id := self.request.query_params.get('period'):
             qs = qs.filter(period_id=period_id)
-        level = self.request.query_params.get('level')
-        if level:
+        if level := self.request.query_params.get('level'):
             qs = qs.filter(level=level)
-        status_filter = self.request.query_params.get('status')
-        if status_filter:
+        if status_filter := self.request.query_params.get('status'):
             qs = qs.filter(status=status_filter)
-        # Top-level only (no parent) — useful for tree root
         if self.request.query_params.get('root') == 'true':
             qs = qs.filter(parent__isnull=True)
         return qs
@@ -52,10 +81,9 @@ class ObjectiveViewSet(viewsets.ModelViewSet):
             return ObjectiveListSerializer
         return ObjectiveSerializer
 
-    # ─── Nested key results ──────────────────────────────────────────────────
-
     @action(detail=True, methods=['get', 'post'], url_path='key-results')
-    def key_results(self, request, pk=None):
+    def key_results(self, request, pk=None, **kwargs):
+        """List or create key results under a specific objective."""
         objective = self.get_object()
         if request.method == 'GET':
             qs = objective.key_results.select_related('responsible').prefetch_related('updates')
@@ -68,45 +96,69 @@ class ObjectiveViewSet(viewsets.ModelViewSet):
 
 
 class KeyResultViewSet(viewsets.ModelViewSet):
-    permission_classes = [HasTenant]
+    permission_classes = PERF_PERMISSIONS
     serializer_class = KeyResultSerializer
 
     def get_queryset(self):
-        return KeyResult.objects.for_tenant(
+        qs = KeyResult.objects.for_tenant(
             self.request.tenant,
         ).select_related('objective', 'responsible').prefetch_related('updates')
+        # Scope to objective when accessed via nested URL
+        if objective_pk := self.kwargs.get('objective_pk'):
+            qs = qs.filter(objective_id=objective_pk)
+        return qs
 
-    @action(detail=True, methods=['post'], url_path='updates')
-    def add_update(self, request, pk=None):
+    @action(detail=True, methods=['get', 'post'], url_path='updates')
+    def updates(self, request, pk=None, **kwargs):
         """
-        POST /api/v1/performance/key-results/{id}/updates/
-        Records a check-in; automatically updates KeyResult.current_value.
+        GET  — list updates (check-ins) for a key result.
+        POST — record a new check-in; automatically advances current_value.
         """
         kr = self.get_object()
-        data = request.data.copy()
-        data['previous_value'] = kr.current_value
-        data['key_result'] = str(kr.id)
+        if request.method == 'GET':
+            qs = kr.updates.all()
+            return Response(
+                KeyResultUpdateSerializer(qs, many=True, context={'request': request}).data
+            )
 
-        serializer = KeyResultUpdateSerializer(data=data, context={'request': request})
+        serializer = KeyResultUpdateSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
-        serializer.save(key_result=kr, tenant=request.tenant)
+        serializer.save(key_result=kr, tenant=request.tenant, previous_value=kr.current_value)
+        # Refresh to get updated current_value from model's save() signal
+        kr.refresh_from_db()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
+class KeyResultUpdateViewSet(
+    mixins.RetrieveModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
+    """Retrieve or delete a specific key result update (check-in)."""
+    permission_classes = PERF_PERMISSIONS
+    serializer_class = KeyResultUpdateSerializer
+
+    def get_queryset(self):
+        qs = KeyResultUpdate.objects.for_tenant(
+            self.request.tenant,
+        ).select_related('key_result')
+        if kr_pk := self.kwargs.get('kr_pk'):
+            qs = qs.filter(key_result_id=kr_pk)
+        return qs
+
+
 class KPIViewSet(viewsets.ModelViewSet):
-    permission_classes = [HasTenant]
+    permission_classes = PERF_PERMISSIONS
 
     def get_queryset(self):
         qs = KPI.objects.for_tenant(
             self.request.tenant,
         ).select_related('department', 'owner', 'quality_process').prefetch_related('measurements')
-        if self.action == 'list':
+        if self.action == 'list' and self.request.query_params.get('all') != 'true':
             qs = qs.filter(is_active=True)
-        dept = self.request.query_params.get('department')
-        if dept:
+        if dept := self.request.query_params.get('department'):
             qs = qs.filter(department_id=dept)
-        freq = self.request.query_params.get('frequency')
-        if freq:
+        if freq := self.request.query_params.get('frequency'):
             qs = qs.filter(frequency=freq)
         return qs
 
@@ -117,10 +169,13 @@ class KPIViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get', 'post'], url_path='measurements')
     def measurements(self, request, pk=None):
+        """List or create measurements for a KPI."""
         kpi = self.get_object()
         if request.method == 'GET':
             qs = kpi.measurements.all()
-            return Response(KPIMeasurementSerializer(qs, many=True, context={'request': request}).data)
+            return Response(
+                KPIMeasurementSerializer(qs, many=True, context={'request': request}).data
+            )
 
         serializer = KPIMeasurementSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
@@ -128,27 +183,41 @@ class KPIViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
+class KPIMeasurementViewSet(
+    mixins.RetrieveModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
+    """Retrieve or delete a specific KPI measurement."""
+    permission_classes = PERF_PERMISSIONS
+    serializer_class = KPIMeasurementSerializer
+
+    def get_queryset(self):
+        qs = KPIMeasurement.objects.for_tenant(
+            self.request.tenant,
+        ).select_related('kpi')
+        if kpi_pk := self.kwargs.get('kpi_pk'):
+            qs = qs.filter(kpi_id=kpi_pk)
+        return qs
+
+
 class PerformanceDashboardView(viewsets.ViewSet):
-    permission_classes = [HasTenant]
+    permission_classes = PERF_PERMISSIONS
 
     def list(self, request):
         tenant = request.tenant
 
         active_period = OKRPeriod.objects.filter(tenant=tenant, is_active=True).first()
-
         objectives_qs = Objective.objects.for_tenant(tenant)
         if active_period:
             objectives_qs = objectives_qs.filter(period=active_period)
 
-        # Counts by status
         by_status = objectives_qs.values('status').annotate(n=Count('id'))
         objectives_by_status = {r['status']: r['n'] for r in by_status}
 
-        # Counts by level
         by_level = objectives_qs.values('level').annotate(n=Count('id'))
         objectives_by_level = {r['level']: r['n'] for r in by_level}
 
-        # Average progress per level (computed in Python — progress_percentage is a property)
         avg_by_level: dict[str, float] = {}
         for level_choice, _ in Objective.LEVEL_CHOICES:
             objs = list(objectives_qs.filter(level=level_choice).prefetch_related('key_results'))
@@ -157,7 +226,6 @@ class PerformanceDashboardView(viewsets.ViewSet):
                     sum(o.progress_percentage for o in objs) / len(objs), 1
                 )
 
-        # KPI stats
         active_kpis = KPI.objects.for_tenant(tenant).filter(is_active=True)
         active_kpis_count = active_kpis.count()
         kpis_on_target = sum(
@@ -166,12 +234,11 @@ class PerformanceDashboardView(viewsets.ViewSet):
             and float(m.value) >= float(kpi.target_value)
         )
 
-        data = {
+        return Response(PerformanceDashboardSerializer({
             'active_period': active_period,
             'objectives_by_status': objectives_by_status,
             'objectives_by_level': objectives_by_level,
             'avg_progress_by_level': avg_by_level,
             'active_kpis_count': active_kpis_count,
             'kpis_on_target': kpis_on_target,
-        }
-        return Response(PerformanceDashboardSerializer(data, context={'request': request}).data)
+        }, context={'request': request}).data)

@@ -1,8 +1,9 @@
+from django.db.models import Q
 from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from apps.core.permissions import HasTenant
+from apps.core.permissions import HasTenant, HasModule
 from .models import Department, Employee, Contract, EmployeeDocument, EmployeeHistory
 from .serializers import (
     DepartmentSerializer, DepartmentTreeSerializer,
@@ -11,8 +12,15 @@ from .serializers import (
 )
 
 
+class PersonnelModulePermission(HasModule):
+    module = 'personnel'
+
+
+PERSONNEL_PERMISSIONS = [HasTenant, PersonnelModulePermission]
+
+
 class DepartmentViewSet(viewsets.ModelViewSet):
-    permission_classes = [HasTenant]
+    permission_classes = PERSONNEL_PERMISSIONS
     serializer_class = DepartmentSerializer
 
     def get_queryset(self):
@@ -27,14 +35,13 @@ class DepartmentViewSet(viewsets.ModelViewSet):
 
 
 class EmployeeViewSet(viewsets.ModelViewSet):
-    permission_classes = [HasTenant]
+    permission_classes = PERSONNEL_PERMISSIONS
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_queryset(self):
         qs = Employee.objects.for_tenant(self.request.tenant).select_related(
-            'document_type', 'department', 'direct_manager',
+            'document_type', 'profession', 'department', 'direct_manager',
         )
-        # Optional filters
         status_filter = self.request.query_params.get('status')
         if status_filter:
             qs = qs.filter(status=status_filter)
@@ -43,13 +50,12 @@ class EmployeeViewSet(viewsets.ModelViewSet):
             qs = qs.filter(department_id=dept)
         search = self.request.query_params.get('search')
         if search:
-            qs = qs.filter(
-                first_last_name__icontains=search,
-            ) | qs.filter(
-                first_name__icontains=search,
-            ) | qs.filter(
-                document_number__icontains=search,
-            )
+            q = Q(first_last_name__icontains=search) | Q(first_name__icontains=search)
+            try:
+                q |= Q(document_number=int(search))
+            except (ValueError, TypeError):
+                pass
+            qs = qs.filter(q)
         return qs.distinct()
 
     def get_serializer_class(self):
@@ -58,8 +64,6 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         if self.action in ('create', 'update', 'partial_update'):
             return EmployeeWriteSerializer
         return EmployeeDetailSerializer
-
-    # ─── Contracts ───────────────────────────────────────────────────────────
 
     @action(detail=True, methods=['get', 'post'], url_path='contracts')
     def contracts(self, request, pk=None):
@@ -76,8 +80,6 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         serializer.save(employee=employee, tenant=request.tenant)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    # ─── Documents ───────────────────────────────────────────────────────────
-
     @action(
         detail=True, methods=['get', 'post'], url_path='documents',
         parser_classes=[MultiPartParser, FormParser, JSONParser],
@@ -93,8 +95,6 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save(employee=employee, tenant=request.tenant)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    # ─── History ─────────────────────────────────────────────────────────────
 
     @action(detail=True, methods=['get'], url_path='history')
     def history(self, request, pk=None):
@@ -114,12 +114,16 @@ class ContractViewSet(
     Direct contract access by ID (retrieve / update / delete).
     Creation goes through /employees/{id}/contracts/.
     """
-    permission_classes = [HasTenant]
+    permission_classes = PERSONNEL_PERMISSIONS
     serializer_class = ContractSerializer
 
     def get_queryset(self):
-        return Contract.objects.for_tenant(self.request.tenant).select_related(
+        qs = Contract.objects.for_tenant(self.request.tenant).select_related(
             'employee', 'contract_type', 'position',
             'eps', 'afp', 'ccf', 'severance_fund',
             'contributor_type', 'contributor_subtype',
         )
+        employee_pk = self.kwargs.get('employee_pk')
+        if employee_pk:
+            qs = qs.filter(employee_id=employee_pk)
+        return qs

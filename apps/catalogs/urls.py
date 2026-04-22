@@ -2,7 +2,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     CountryViewSet, StateProvinceViewSet, CityViewSet, DocumentTypeViewSet,
     SocialSecurityEntityViewSet, BankViewSet, ContractTypeViewSet,
-    SalaryTypeViewSet, ContributorTypeViewSet, ContributorSubtypeViewSet,
+    PayrollTypeViewSet, SalaryTypeViewSet, ContributorTypeViewSet, ContributorSubtypeViewSet,
     DiagnosisViewSet, AbsenceTypeViewSet, HolidayViewSet, ProfessionViewSet,
     ContractTemplateViewSet, OrganizationalLevelViewSet, PositionViewSet,
     CostCenterViewSet, SubCostCenterViewSet, WorkLocationViewSet, WorkCenterViewSet,
@@ -16,6 +16,7 @@ router.register('document-types', DocumentTypeViewSet, basename='document-type')
 router.register('social-security-entities', SocialSecurityEntityViewSet, basename='social-security-entity')
 router.register('banks', BankViewSet, basename='bank')
 router.register('contract-types', ContractTypeViewSet, basename='contract-type')
+router.register('payroll-types', PayrollTypeViewSet, basename='payroll-type')
 router.register('salary-types', SalaryTypeViewSet, basename='salary-type')
 router.register('contributor-types', ContributorTypeViewSet, basename='contributor-type')
 router.register('contributor-subtypes', ContributorSubtypeViewSet, basename='contributor-subtype')

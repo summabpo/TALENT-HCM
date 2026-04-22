@@ -5,7 +5,6 @@ DEBUG = True
 ALLOWED_HOSTS = ['*']
 
 SESSION_COOKIE_SECURE = False
-SESSION_COOKIE_DOMAIN = None  # localhost doesn't need domain restriction
 
 INSTALLED_APPS += ['debug_toolbar']  # noqa
 

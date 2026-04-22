@@ -11,13 +11,18 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    /**
+     * Solo `/api` va al backend. NO proxyear `/admin`: esas rutas las maneja el SPA
+     * (React Router). Un proxy `/admin` → Django hacía que /admin/tenants devolviera 404 del servidor.
+     */
     proxy: {
       '/api': {
-        target: 'http://localhost:8001',
+        // Mismo host/puerto que `manage.py runserver` (cambia a 8000 si aplica)
+        target: 'http://127.0.0.1:8001',
         changeOrigin: true,
       },
-      '/admin': {
-        target: 'http://localhost:8001',
+      '/media': {
+        target: 'http://127.0.0.1:8001',
         changeOrigin: true,
       },
     },

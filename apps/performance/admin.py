@@ -21,12 +21,13 @@ class KeyResultInline(admin.TabularInline):
 class OKRPeriodAdmin(TenantModelAdmin):
     list_display = ['name', 'start_date', 'end_date', 'is_active', 'tenant']
     list_filter = ['is_active', 'tenant']
+    search_fields = ['name']
 
 
 @admin.register(Objective)
 class ObjectiveAdmin(TenantModelAdmin):
     list_display = ['title', 'period', 'level', 'status', 'weight', 'owner', 'tenant']
-    list_filter = ['level', 'status', 'tenant']
+    list_filter = ['level', 'status', 'period', 'tenant']
     search_fields = ['title']
     raw_id_fields = ['period', 'department', 'owner', 'parent']
     inlines = [KeyResultInline]
@@ -49,6 +50,15 @@ class KeyResultAdmin(TenantModelAdmin):
     inlines = [KeyResultUpdateInline]
 
 
+@admin.register(KeyResultUpdate)
+class KeyResultUpdateAdmin(TenantModelAdmin):
+    list_display = ['key_result', 'previous_value', 'new_value', 'updated_by', 'created_at', 'tenant']
+    list_filter = ['tenant']
+    raw_id_fields = ['key_result']
+    readonly_fields = ['created_at']
+    search_fields = ['key_result__title', 'updated_by']
+
+
 class KPIMeasurementInline(admin.TabularInline):
     model = KPIMeasurement
     extra = 0
@@ -58,8 +68,18 @@ class KPIMeasurementInline(admin.TabularInline):
 
 @admin.register(KPI)
 class KPIAdmin(TenantModelAdmin):
-    list_display = ['name', 'metric_type', 'target_value', 'frequency', 'is_active', 'tenant']
+    list_display = ['name', 'metric_type', 'target_value', 'frequency', 'is_active', 'owner', 'tenant']
     list_filter = ['metric_type', 'frequency', 'is_active', 'tenant']
     search_fields = ['name']
     raw_id_fields = ['department', 'owner', 'quality_process']
     inlines = [KPIMeasurementInline]
+
+
+@admin.register(KPIMeasurement)
+class KPIMeasurementAdmin(TenantModelAdmin):
+    list_display = ['kpi', 'period_label', 'period_date', 'value', 'recorded_by', 'tenant']
+    list_filter = ['tenant']
+    raw_id_fields = ['kpi']
+    readonly_fields = ['created_at']
+    ordering = ['-period_date']
+    search_fields = ['kpi__name', 'period_label', 'recorded_by']

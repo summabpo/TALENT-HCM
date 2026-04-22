@@ -2,7 +2,7 @@ from rest_framework import serializers
 from apps.core.serializers import TenantSerializer
 from .models import (
     Country, StateProvince, City, DocumentType, SocialSecurityEntity,
-    Bank, ContractType, SalaryType, ContributorType, ContributorSubtype,
+    Bank, ContractType, PayrollType, SalaryType, ContributorType, ContributorSubtype,
     Diagnosis, AbsenceType, Holiday, Profession, ContractTemplate,
     OrganizationalLevel, Position, CostCenter, SubCostCenter,
     WorkLocation, WorkCenter,
@@ -12,43 +12,51 @@ from .models import (
 class CountrySerializer(serializers.ModelSerializer):
     class Meta:
         model = Country
-        fields = ['id', 'name', 'iso_code']
+        fields = ['id', 'name', 'iso_code', 'is_active']
 
 
 class StateProvinceSerializer(serializers.ModelSerializer):
     class Meta:
         model = StateProvince
-        fields = ['id', 'name', 'code', 'country']
+        fields = ['id', 'name', 'code', 'country', 'is_active']
 
 
 class CitySerializer(serializers.ModelSerializer):
+    state_province_name = serializers.CharField(source='state_province.name', read_only=True)
+
     class Meta:
         model = City
-        fields = ['id', 'name', 'code', 'state_province']
+        fields = ['id', 'name', 'code', 'state_province', 'state_province_name', 'is_active']
 
 
 class DocumentTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = DocumentType
-        fields = ['id', 'name', 'code', 'dian_code']
+        fields = ['id', 'name', 'code', 'dian_code', 'is_active']
 
 
 class SocialSecurityEntitySerializer(serializers.ModelSerializer):
     class Meta:
         model = SocialSecurityEntity
-        fields = ['id', 'code', 'nit', 'name', 'entity_type', 'sgp_code']
+        fields = ['id', 'code', 'nit', 'name', 'entity_type', 'sgp_code', 'is_active']
 
 
 class BankSerializer(serializers.ModelSerializer):
     class Meta:
         model = Bank
-        fields = ['id', 'name', 'code', 'ach_code', 'nit']
+        fields = ['id', 'name', 'code', 'ach_code', 'nit', 'is_active']
 
 
 class ContractTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = ContractType
         fields = ['id', 'name', 'dian_code']
+
+
+class PayrollTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PayrollType
+        fields = ['id', 'nombre', 'cod_dian', 'activo']
 
 
 class SalaryTypeSerializer(serializers.ModelSerializer):

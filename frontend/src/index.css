@@ -1,3 +1,256 @@
+/* ─── Futura PT via Google Fonts fallback (Outfit is the closest match) ─────── */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+/* ─── Futura PT (place actual files at /public/fonts/ for production) ───────── */
+/*
+@font-face { font-family:"Futura PT"; src:url('/fonts/FuturaPTBook.woff2') format('woff2'); font-weight:400; font-style:normal; font-display:swap; }
+@font-face { font-family:"Futura PT"; src:url('/fonts/FuturaPTMedium.woff2') format('woff2'); font-weight:500; font-style:normal; font-display:swap; }
+@font-face { font-family:"Futura PT"; src:url('/fonts/FuturaPTBold.woff2') format('woff2'); font-weight:700; font-style:normal; font-display:swap; }
+*/
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ─── Design tokens (aligned with tailwind.config.js theme.extend) ─────────── */
+:root {
+  --summa-navy:        #212f87;
+  --summa-navy-hover:  #1a2570;
+  --summa-magenta:     #d52680;
+  --summa-magenta-hover: #b51e69;
+  --summa-cyan:        #7dc7e9;
+  --summa-cyan-hover:  #5ab0d9;
+  --summa-purple:      #959bcc;
+  --summa-surface:     #f9f8fc;
+  --summa-surface-dk:  #ede8f8;
+  --summa-ink:         #3d3963;
+  --summa-ink-light:   #6b6894;
+  --summa-border:      #d8d4ed;
+  --summa-radius:      10px;
+  --summa-radius-lg: 16px;
+  --summa-radius-xl:  24px;
+  --summa-shadow-sm:  0 1px 4px 0 rgba(33, 47, 135, 0.08);
+  --summa-shadow:     0 2px 12px 0 rgba(33, 47, 135, 0.12);
+  --summa-shadow-accent: 0 4px 20px 0 rgba(213, 38, 128, 0.25);
+}
+
+/* ─── Base ───────────────────────────────────────────────────────────────────── */
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+  body {
+    font-family: "Futura PT", "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background-color: var(--summa-surface);
+    color: var(--summa-ink);
+  }
+
+  h1, h2, h3, h4, h5, h6 { font-weight: 700; color: var(--summa-ink); letter-spacing: -0.01em; }
+  h1 { font-size: 1.75rem; line-height: 1.2; }
+  h2 { font-size: 1.25rem; }
+  h3 { font-size: 1.0625rem; }
+
+  a { color: var(--summa-navy); }
+  a:hover { color: var(--summa-magenta); }
+
+  input, select, textarea, button { font-family: inherit; }
+
+  /* Remove ugly autofill yellow */
+  input:-webkit-autofill { -webkit-box-shadow: 0 0 0 40px var(--summa-surface) inset; }
+}
+
+/* ─── Component layer ────────────────────────────────────────────────────────── */
+@layer components {
+
+  /* ── Buttons ── */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 font-semibold transition-all duration-200 cursor-pointer select-none text-sm;
+    letter-spacing: 0.01em;
+    border-radius: var(--summa-radius);
+  }
+  .btn:disabled { @apply opacity-50 pointer-events-none; }
+
+  .btn-sm  { @apply px-3 py-1.5 text-xs; }
+  .btn-md  { @apply px-4 py-2 text-sm; }
+  .btn-lg  { @apply px-6 py-3 text-base; }
+
+  /* Primary: navy + magenta hover gradient */
+  .btn-primary {
+    @apply btn btn-md text-white;
+    background-color: var(--summa-navy);
+    box-shadow: var(--summa-shadow-sm);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: linear-gradient(135deg, #212f87 0%, #d52680 100%);
+    box-shadow: var(--summa-shadow);
+  }
+
+  /* Accent: magenta */
+  .btn-accent {
+    @apply btn btn-md text-white;
+    background-color: var(--summa-magenta);
+    box-shadow: var(--summa-shadow-accent);
+  }
+  .btn-accent:hover:not(:disabled) {
+    background: linear-gradient(135deg, #d52680 0%, #7dc7e9 100%);
+  }
+
+  /* Secondary: cyan outline */
+  .btn-secondary {
+    @apply btn btn-md bg-transparent;
+    color: var(--summa-navy);
+    border: 1px solid var(--summa-cyan);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background-color: var(--summa-cyan);
+    color: #fff;
+  }
+
+  /* Ghost: subtle */
+  .btn-ghost {
+    @apply btn btn-md bg-transparent;
+    color: var(--summa-ink);
+    border: 1px solid var(--summa-border);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background-color: var(--summa-surface-dk);
+    border-color: var(--summa-purple);
+    color: var(--summa-navy);
+  }
+
+  /* Danger: magenta */
+  .btn-danger {
+    @apply btn btn-md text-white;
+    background-color: var(--summa-magenta);
+    box-shadow: var(--summa-shadow-accent);
+  }
+  .btn-danger:hover:not(:disabled) {
+    background-color: var(--summa-magenta-hover);
+  }
+
+  /* ── Inputs ── */
+  .input {
+    @apply w-full px-3 py-2 text-sm bg-white transition-all duration-150;
+    color: var(--summa-ink);
+    border: 1px solid var(--summa-border);
+    border-radius: var(--summa-radius);
+    outline: none;
+  }
+  .input:focus {
+    border-color: var(--summa-navy);
+    box-shadow: 0 0 0 2px rgba(33, 47, 135, 0.2);
+  }
+  .input::placeholder {
+    color: var(--summa-ink-light);
+  }
+
+  /* ── Cards ── */
+  .card {
+    @apply bg-white;
+    border: 1px solid var(--summa-border);
+    border-radius: var(--summa-radius-lg);
+    box-shadow: var(--summa-shadow-sm);
+  }
+  .card-surface {
+    background-color: var(--summa-surface);
+    border: 1px solid var(--summa-border);
+    border-radius: var(--summa-radius-lg);
+    box-shadow: var(--summa-shadow-sm);
+  }
+
+  /* ── Badges ── */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold;
+  }
+  /* Status-semantic badges */
+  .badge-navy {
+    @apply badge;
+    background-color: rgba(33, 47, 135, 0.1);
+    color: var(--summa-navy);
+  }
+  .badge-magenta {
+    @apply badge;
+    background-color: rgba(213, 38, 128, 0.1);
+    color: var(--summa-magenta);
+  }
+  .badge-cyan {
+    @apply badge;
+    background-color: rgba(125, 199, 233, 0.2);
+    color: var(--summa-cyan-hover);
+  }
+  .badge-purple {
+    @apply badge;
+    background-color: rgba(149, 155, 204, 0.2);
+    color: var(--summa-ink);
+  }
+  .badge-green   { @apply badge bg-emerald-50 text-emerald-700; }
+  .badge-gray {
+    @apply badge;
+    background-color: var(--summa-surface-dk);
+    color: var(--summa-ink-light);
+  }
+
+  /* ── Section header inside cards ── */
+  .section-title {
+    @apply text-xs font-semibold uppercase tracking-widest mb-4;
+    color: var(--summa-ink-light);
+  }
+
+  /* ── Table ── */
+  .data-table { @apply w-full text-sm; }
+  .data-table thead tr {
+    border-bottom: 1px solid var(--summa-border);
+  }
+  .data-table th {
+    @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider;
+    color: var(--summa-ink-light);
+  }
+  .data-table tbody tr {
+    border-bottom: 1px solid var(--summa-surface-dk);
+    transition-property: color, background-color, border-color;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+  .data-table tbody tr:last-child { @apply border-b-0; }
+  .data-table tbody tr:hover {
+    background-color: var(--summa-surface);
+  }
+  .data-table td {
+    @apply px-4 py-3;
+    color: var(--summa-ink);
+  }
+
+  /* ── Form field wrapper ── */
+  .field label {
+    @apply block text-sm font-semibold mb-1;
+    color: var(--summa-ink);
+  }
+  .field-error {
+    @apply text-xs mt-1;
+    color: var(--summa-magenta);
+  }
+
+  /* ── Page header ── */
+  .page-header {
+    @apply flex items-start justify-between mb-6;
+  }
+  .page-title {
+    @apply text-2xl font-bold;
+    color: var(--summa-ink);
+    letter-spacing: -0.02em;
+  }
+
+  /* ── Decorative SUMMA shape (rounded triangle) ── */
+  .summa-shape {
+    @apply absolute opacity-20 pointer-events-none;
+    border-radius: var(--summa-radius-xl);
+    clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+  }
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--summa-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--summa-purple); }

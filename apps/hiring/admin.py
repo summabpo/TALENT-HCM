@@ -52,21 +52,39 @@ class OnboardingChecklistAdmin(TenantModelAdmin):
     inlines = [OnboardingTaskInline]
 
 
+@admin.register(OnboardingTask)
+class OnboardingTaskAdmin(TenantModelAdmin):
+    list_display = ['title', 'checklist', 'order', 'days_to_complete', 'tenant']
+    list_filter = ['tenant']
+    search_fields = ['title', 'checklist__name']
+    raw_id_fields = ['checklist']
+    ordering = ['checklist', 'order']
+
+
 class OnboardingTaskCompletionInline(admin.TabularInline):
     model = OnboardingTaskCompletion
     extra = 0
-    fields = ['task', 'completed_by', 'completed_at']
-    readonly_fields = ['task']
+    fields = ['task', 'completed_by', 'completed_at', 'notes']
+    readonly_fields = ['task', 'completed_at']
 
 
 @admin.register(EmployeeOnboarding)
 class EmployeeOnboardingAdmin(TenantModelAdmin):
     list_display = ['employee', 'checklist', 'start_date', 'status', 'progress_percentage', 'tenant']
     list_filter = ['status', 'tenant']
-    raw_id_fields = ['employee']
+    search_fields = ['employee__first_name', 'employee__first_last_name']
+    raw_id_fields = ['employee', 'checklist']
     readonly_fields = ['completed_at']
     inlines = [OnboardingTaskCompletionInline]
 
     def progress_percentage(self, obj):
         return f'{obj.progress_percentage}%'
     progress_percentage.short_description = 'Progreso'
+
+
+@admin.register(OnboardingTaskCompletion)
+class OnboardingTaskCompletionAdmin(TenantModelAdmin):
+    list_display = ['task', 'onboarding', 'completed_by', 'completed_at', 'tenant']
+    list_filter = ['tenant']
+    raw_id_fields = ['onboarding', 'task']
+    readonly_fields = ['completed_at']

@@ -1,60 +1,132 @@
 import pytest
-from unittest.mock import patch, PropertyMock
 from rest_framework.test import APIClient
-from .factories import TenantFactory, EmployeeFactory, DepartmentFactory
+from apps.core.models import User
+from apps.catalogs.models import SocialSecurityEntityType
+from .factories import (
+    TenantFactory, TenantModulesFactory, EmployeeFactory,
+    DepartmentFactory, ContractFactory, SocialSecurityEntityFactory,
+)
 
 
-@pytest.fixture
-def setup(db):
-    tenant = TenantFactory()
-    dept = DepartmentFactory(tenant=tenant)
-    emp = EmployeeFactory(tenant=tenant, department=dept)
+def _make_user(tenant, roles=None):
+    user = User.objects.create_user(
+        email=f'user_{tenant.slug}@test.co',
+        password='pass',
+        first_name='Test',
+        last_name='User',
+    )
+    user._jwt_tenant_id = str(tenant.id)
+    user._jwt_roles = roles or ['admin']
+    return user
 
-    mock_user = type('User', (), {
-        'id': '1', 'email': 'hr@corp.com', 'full_name': 'HR',
-        'roles': ['admin'], 'tenant_id': str(tenant.id),
-        'is_authenticated': True, 'is_anonymous': False,
-        'has_role': lambda self, r: True,
-    })()
 
+def _client_for(tenant, modules_kwargs=None):
+    mods_kw = {'personnel': True, **(modules_kwargs or {})}
+    TenantModulesFactory(tenant=tenant, **mods_kw)
     client = APIClient()
-    client.force_authenticate(user=mock_user)
-    return client, tenant, dept, emp
+    client.force_authenticate(user=_make_user(tenant))
+    return client
 
 
 @pytest.mark.django_db
-class TestEmployeeAPI:
-    def test_list_employees_filtered_by_tenant(self, setup):
-        client, tenant, dept, emp = setup
-        other_tenant = TenantFactory()
-        EmployeeFactory(tenant=other_tenant)
+class TestTenantIsolation:
+    def test_employee_list_excludes_other_tenant(self):
+        tenant_a = TenantFactory()
+        tenant_b = TenantFactory()
+        emp_a = EmployeeFactory(tenant=tenant_a)
+        EmployeeFactory(tenant=tenant_b)
 
-        with patch('apps.core.middleware.TenantMiddleware.__call__') as _:
-            with patch('apps.personnel.views.EmployeeViewSet.get_queryset') as mock_qs:
-                from apps.personnel.models import Employee
-                mock_qs.return_value = Employee.objects.filter(tenant=tenant)
-                response = client.get('/api/v1/personnel/employees/')
+        client = _client_for(tenant_a)
+        response = client.get('/api/v1/personnel/employees/')
 
         assert response.status_code == 200
+        ids = [e['id'] for e in response.json()['results']]
+        assert str(emp_a.id) in ids
+        assert len(ids) == 1
 
-    def test_get_employee_detail(self, setup):
-        client, tenant, dept, emp = setup
-        with patch('apps.personnel.views.EmployeeViewSet.get_queryset') as mock_qs:
-            from apps.personnel.models import Employee
-            mock_qs.return_value = Employee.objects.filter(tenant=tenant)
-            response = client.get(f'/api/v1/personnel/employees/{emp.id}/')
+    def test_department_list_excludes_other_tenant(self):
+        tenant_a = TenantFactory()
+        tenant_b = TenantFactory()
+        dept_a = DepartmentFactory(tenant=tenant_a)
+        DepartmentFactory(tenant=tenant_b)
+
+        client = _client_for(tenant_a)
+        response = client.get('/api/v1/personnel/departments/')
+
         assert response.status_code == 200
-        assert response.json()['id'] == str(emp.id)
+        ids = [d['id'] for d in response.json()['results']]
+        assert str(dept_a.id) in ids
+        assert len(ids) == 1
 
 
 @pytest.mark.django_db
-class TestDepartmentAPI:
-    def test_list_departments(self, setup):
-        client, tenant, dept, emp = setup
-        with patch('apps.personnel.views.DepartmentViewSet.get_queryset') as mock_qs:
-            from apps.personnel.models import Department
-            mock_qs.return_value = Department.objects.filter(tenant=tenant)
-            response = client.get('/api/v1/personnel/departments/')
+class TestModulePermission:
+    def test_personnel_disabled_returns_403(self):
+        tenant = TenantFactory()
+        TenantModulesFactory(tenant=tenant, personnel=False)
+        EmployeeFactory(tenant=tenant)
+
+        client = APIClient()
+        client.force_authenticate(user=_make_user(tenant))
+        response = client.get('/api/v1/personnel/employees/')
+
+        assert response.status_code == 403
+
+    def test_personnel_enabled_returns_200(self):
+        tenant = TenantFactory()
+        TenantModulesFactory(tenant=tenant, personnel=True)
+
+        client = APIClient()
+        client.force_authenticate(user=_make_user(tenant))
+        response = client.get('/api/v1/personnel/employees/')
+
         assert response.status_code == 200
-        results = response.json()['results']
-        assert any(d['name'] == dept.name for d in results)
+
+
+@pytest.mark.django_db
+class TestContractSSEntityFKs:
+    def test_contract_with_valid_ss_entities(self):
+        tenant = TenantFactory()
+        emp = EmployeeFactory(tenant=tenant)
+        contract = ContractFactory(tenant=tenant, employee=emp)
+
+        assert contract.eps.entity_type == SocialSecurityEntityType.EPS
+        assert contract.ccf.entity_type == SocialSecurityEntityType.CCF
+
+    def test_contract_list_via_employee_action(self):
+        tenant = TenantFactory()
+        emp = EmployeeFactory(tenant=tenant)
+        ContractFactory(tenant=tenant, employee=emp)
+
+        client = _client_for(tenant)
+        response = client.get(f'/api/v1/personnel/employees/{emp.id}/contracts/')
+
+        assert response.status_code == 200
+        assert len(response.json()) == 1
+
+    def test_contract_detail_via_nested_url(self):
+        tenant = TenantFactory()
+        emp = EmployeeFactory(tenant=tenant)
+        contract = ContractFactory(tenant=tenant, employee=emp)
+
+        client = _client_for(tenant)
+        response = client.get(
+            f'/api/v1/personnel/employees/{emp.id}/contracts/{contract.id}/'
+        )
+
+        assert response.status_code == 200
+        assert response.json()['id'] == str(contract.id)
+
+    def test_contract_nested_url_scoped_to_employee(self):
+        """Contract belonging to another employee returns 404."""
+        tenant = TenantFactory()
+        emp_a = EmployeeFactory(tenant=tenant)
+        emp_b = EmployeeFactory(tenant=tenant)
+        contract_b = ContractFactory(tenant=tenant, employee=emp_b)
+
+        client = _client_for(tenant)
+        response = client.get(
+            f'/api/v1/personnel/employees/{emp_a.id}/contracts/{contract_b.id}/'
+        )
+
+        assert response.status_code == 404
