@@ -147,6 +147,18 @@ export interface CatalogProfession {
   name: string
 }
 
+/** Nested country/city in GET /personnel/employees/:id/ */
+export interface CountryNested {
+  id: number
+  name: string
+}
+
+export interface CityNested {
+  id: number
+  name: string
+  country_id: number
+}
+
 export interface Employee {
   id: string
   global_employee_id: string | null
@@ -164,10 +176,10 @@ export interface Employee {
   address: string
   gender: string
   date_of_birth: string | null
-  birth_city: number | null
-  birth_country: string
-  residence_city: number | null
-  residence_country: string
+  birth_city: CityNested | null
+  birth_country: CountryNested | null
+  residence_city: CityNested | null
+  residence_country: CountryNested | null
   marital_status: string
   blood_type: string
   socioeconomic_stratum: string | null
@@ -177,7 +189,7 @@ export interface Employee {
   height?: string
   resume_format?: string
   document_expedition_date: string | null
-  document_expedition_city: number | null
+  document_expedition_city: CityNested | null
   uniform_pants: string
   uniform_shirt: string
   uniform_shoes: string
@@ -186,6 +198,8 @@ export interface Employee {
   emergency_contact_phone: string
   emergency_contact_relationship: string
   photo: string | null
+  /** PDF de hoja de vida (URL absoluta o relativa) */
+  resume_file?: string | null
   department: string | null
   direct_manager: string | null
   employee_number: string

@@ -74,7 +74,7 @@ class EmployeeAdmin(TenantModelAdmin):
         ('Dotación / Emergencia', {
             'classes': ('collapse',),
             'fields': (
-                'photo',
+                'photo', 'resume_file',
                 'uniform_pants', 'uniform_shirt', 'uniform_shoes',
                 'emergency_contact_name', 'emergency_contact_phone',
                 'emergency_contact_relationship',

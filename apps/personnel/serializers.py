@@ -1,7 +1,18 @@
 from rest_framework import serializers
-from apps.catalogs.models import DocumentType, Profession
+from apps.catalogs.models import City, Country, DocumentType, Profession
 from apps.core.serializers import TenantSerializer
 from .models import Department, Employee, Contract, EmployeeDocument, EmployeeHistory
+
+
+class NullablePKRelatedField(serializers.PrimaryKeyRelatedField):
+    """Accepts empty string from multipart form for optional FKs."""
+
+    def to_internal_value(self, data):
+        if data in (None, '', 'null', 'None'):
+            if not self.allow_null:
+                self.fail('invalid')
+            return None
+        return super().to_internal_value(data)
 
 
 class DocumentTypeNestedSerializer(serializers.ModelSerializer):
@@ -14,6 +25,20 @@ class ProfessionNestedSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profession
         fields = ['id', 'name']
+
+
+class CountryNestedSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Country
+        fields = ['id', 'name']
+
+
+class CityNestedSerializer(serializers.ModelSerializer):
+    country_id = serializers.IntegerField(source='state_province.country_id', read_only=True)
+
+    class Meta:
+        model = City
+        fields = ['id', 'name', 'country_id']
 
 
 # ─── Department ──────────────────────────────────────────────────────────────
@@ -70,6 +95,11 @@ class EmployeeDetailSerializer(TenantSerializer):
     full_name = serializers.CharField(read_only=True)
     document_type = DocumentTypeNestedSerializer(read_only=True)
     profession = ProfessionNestedSerializer(read_only=True)
+    birth_country = CountryNestedSerializer(read_only=True)
+    birth_city = CityNestedSerializer(read_only=True)
+    residence_country = CountryNestedSerializer(read_only=True)
+    residence_city = CityNestedSerializer(read_only=True)
+    document_expedition_city = CityNestedSerializer(read_only=True)
 
     class Meta(TenantSerializer.Meta):
         model = Employee
@@ -98,8 +128,8 @@ class EmployeeDetailSerializer(TenantSerializer):
             # Emergency
             'emergency_contact_name', 'emergency_contact_phone',
             'emergency_contact_relationship',
-            # Photo
-            'photo',
+            # Photo & CV
+            'photo', 'resume_file',
             # Org
             'department', 'direct_manager', 'employee_number',
             # Status
@@ -111,6 +141,28 @@ class EmployeeDetailSerializer(TenantSerializer):
 
 class EmployeeWriteSerializer(TenantSerializer):
     """Used for POST/PATCH — no computed read-only fields."""
+
+    birth_country = NullablePKRelatedField(
+        queryset=Country.objects.filter(is_active=True), allow_null=True, required=False,
+    )
+    birth_city = NullablePKRelatedField(
+        queryset=City.objects.filter(is_active=True).select_related('state_province'),
+        allow_null=True, required=False,
+    )
+    residence_country = NullablePKRelatedField(
+        queryset=Country.objects.filter(is_active=True), allow_null=True, required=False,
+    )
+    residence_city = NullablePKRelatedField(
+        queryset=City.objects.filter(is_active=True).select_related('state_province'),
+        allow_null=True, required=False,
+    )
+    document_expedition_city = NullablePKRelatedField(
+        queryset=City.objects.filter(is_active=True).select_related('state_province'),
+        allow_null=True, required=False,
+    )
+    profession = NullablePKRelatedField(
+        queryset=Profession.objects.all(), allow_null=True, required=False,
+    )
 
     class Meta(TenantSerializer.Meta):
         model = Employee
@@ -130,7 +182,7 @@ class EmployeeWriteSerializer(TenantSerializer):
             'num_libreta_militar',
             'emergency_contact_name', 'emergency_contact_phone',
             'emergency_contact_relationship',
-            'photo',
+            'photo', 'resume_file',
             'department', 'direct_manager', 'employee_number',
             'status', 'is_active',
             'tenant', 'created_at', 'updated_at',
@@ -143,6 +195,18 @@ class EmployeeWriteSerializer(TenantSerializer):
         for key in ('weight', 'height', 'resume_format'):
             if key in attrs and attrs[key] is None:
                 attrs[key] = ''
+
+        resume_f = attrs.get('resume_file')
+        if resume_f:
+            if resume_f.size > 3 * 1024 * 1024:
+                raise serializers.ValidationError(
+                    {'resume_file': 'El archivo no puede superar 3 MB.'}
+                )
+            if not (getattr(resume_f, 'name', '') or '').lower().endswith('.pdf'):
+                raise serializers.ValidationError(
+                    {'resume_file': 'Solo se acepta un archivo PDF.'}
+                )
+            attrs['resume_format'] = Employee.ResumeFormat.PDF
 
         tenant = self.context['request'].tenant
         doc_type = attrs.get('document_type', getattr(self.instance, 'document_type', None))
@@ -207,9 +271,34 @@ class ContractSerializer(TenantSerializer):
             'tenant', 'created_at', 'updated_at',
         ]
         read_only_fields = TenantSerializer.Meta.read_only_fields + ['employee']
+        extra_kwargs = {
+            # Aceptar null en JSON; convertir a '' en validate() (el modelo no usa null=True en estos textos).
+            'payment_method': {'allow_null': True},
+            'is_pensioner': {'allow_null': True},
+            'legacy_contract_id': {'allow_null': True},
+            'work_schedule': {'allow_null': True},
+            'withholding_method': {'allow_null': True},
+            'settlement_status': {'allow_null': True},
+            'social_security_status': {'allow_null': True},
+            'notes': {'allow_null': True},
+            'bank_account_number': {'allow_null': True},
+            'bank_account_type': {'allow_null': True},
+        }
 
     def validate(self, attrs):
-        for key in ('payment_method', 'is_pensioner', 'legacy_contract_id'):
+        str_fields_to_empty = (
+            'payment_method',
+            'is_pensioner',
+            'legacy_contract_id',
+            'work_schedule',
+            'withholding_method',
+            'settlement_status',
+            'social_security_status',
+            'notes',
+            'bank_account_number',
+            'bank_account_type',
+        )
+        for key in str_fields_to_empty:
             if key in attrs and attrs[key] is None:
                 attrs[key] = ''
         return attrs

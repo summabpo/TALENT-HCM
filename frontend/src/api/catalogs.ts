@@ -15,6 +15,7 @@ import type {
   AdminSocialSecurityEntity,
   CatalogProfession,
   CatalogDocumentType,
+  CatalogPayrollType,
 } from '@/types'
 
 async function unwrapList<T>(p: Promise<{ data: PaginatedResponse<T> | T[] }>): Promise<T[]> {
@@ -63,6 +64,10 @@ export interface PositionItem {
 export interface WorkCenterItem {
   id: string
   name: string
+  /** Tarifa ARL (como en Nomiweb) */
+  arl_rate?: string
+  economic_activity?: string
+  operator_code?: string
 }
 
 export interface SocialSecurityEntityItem {
@@ -77,6 +82,25 @@ export interface ContributorTypeItem {
   code: string
   description: string
   form_code: number | null
+}
+
+export interface ContributorSubtypeItem {
+  code: string
+  description: string
+  form_code: number | null
+}
+
+export interface ContractTemplateItem {
+  id: number
+  name: string
+  contract_type: number
+  is_active: boolean
+}
+
+export interface BankListItem {
+  id: number
+  name: string
+  code: string
 }
 
 // Global catalog CRUD for staff/admin users — returns paginated responses
@@ -122,13 +146,25 @@ export const catalogsApi = {
   workCenters: () =>
     unwrapList<WorkCenterItem>(apiClient.get('/catalogs/work-centers/')),
 
-  socialSecurityByType: (type: 'EPS' | 'AFP' | 'CCF' | 'CESANTIAS') =>
+  socialSecurityByType: (type: 'EPS' | 'AFP' | 'CCF' | 'CESANTIAS' | 'ARL') =>
     unwrapList<SocialSecurityEntityItem>(
       apiClient.get('/catalogs/social-security-entities/', { params: { type } }),
     ),
 
   contributorTypes: () =>
     unwrapList<ContributorTypeItem>(apiClient.get('/catalogs/contributor-types/')),
+
+  contributorSubtypes: () =>
+    unwrapList<ContributorSubtypeItem>(apiClient.get('/catalogs/contributor-subtypes/')),
+
+  payrollTypes: () =>
+    unwrapList<CatalogPayrollType>(apiClient.get('/catalogs/payroll-types/')),
+
+  contractTemplates: () =>
+    unwrapList<ContractTemplateItem>(apiClient.get('/catalogs/contract-templates/')),
+
+  banks: () =>
+    unwrapList<BankListItem>(apiClient.get('/catalogs/banks/')),
 
   professions: () =>
     unwrapList<CatalogProfession>(

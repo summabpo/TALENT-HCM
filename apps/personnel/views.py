@@ -41,6 +41,10 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = Employee.objects.for_tenant(self.request.tenant).select_related(
             'document_type', 'profession', 'department', 'direct_manager',
+            'birth_country', 'residence_country',
+            'birth_city', 'residence_city', 'document_expedition_city',
+            'birth_city__state_province', 'residence_city__state_province',
+            'document_expedition_city__state_province',
         )
         status_filter = self.request.query_params.get('status')
         if status_filter:
@@ -57,6 +61,18 @@ class EmployeeViewSet(viewsets.ModelViewSet):
                 pass
             qs = qs.filter(q)
         return qs.distinct()
+
+    def destroy(self, request, *args, **kwargs):
+        """Los empleados no se eliminan: se conserva el histórico (usar estado inactivo/retirado)."""
+        return Response(
+            {
+                'detail': (
+                    'No está permitido eliminar empleados. '
+                    'Cambie el estado del empleado (inactivo, retirado, etc.) para conservar la información.'
+                ),
+            },
+            status=status.HTTP_403_FORBIDDEN,
+        )
 
     def get_serializer_class(self):
         if self.action == 'list':

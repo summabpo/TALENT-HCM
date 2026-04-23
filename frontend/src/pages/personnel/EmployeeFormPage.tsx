@@ -1,18 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useForm, Controller, type UseFormSetError } from 'react-hook-form'
+import { useForm, Controller, useWatch, type UseFormSetError } from 'react-hook-form'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import { personnelApi } from '@/api/personnel'
 import { catalogsApi } from '@/api/catalogs'
+import { tenantsApi } from '@/api/tenants'
 import Breadcrumb from '@/components/ui/Breadcrumb'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import ErrorAlert from '@/components/ui/ErrorAlert'
 import SelectSearchable, { type SearchableOption } from '@/components/ui/SelectSearchable'
-import type { Employee } from '@/types'
+import type { CityNested, CountryNested, Employee } from '@/types'
 
 const IMAGE_MAX_BYTES = 2 * 1024 * 1024
 const IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp'
+const RESUME_MAX_BYTES = 3 * 1024 * 1024
+const PDF_ACCEPT = 'application/pdf'
 
 type EmployeeFormValues = {
   document_type: number | null
@@ -26,6 +29,12 @@ type EmployeeFormValues = {
   phone: string
   cell_phone: string
   address: string
+  /** Solo UI: filtra ciudades de expedición */
+  expedition_country: number | null
+  document_expedition_date: string
+  document_expedition_city: number | null
+  birth_country: number | null
+  birth_city: number | null
   gender: string
   date_of_birth: string
   marital_status: string
@@ -37,7 +46,6 @@ type EmployeeFormValues = {
   num_libreta_militar: string
   weight: string
   height: string
-  resume_format: string
   uniform_pants: string
   uniform_shirt: string
   uniform_shoes: string
@@ -45,6 +53,8 @@ type EmployeeFormValues = {
   emergency_contact_name: string
   emergency_contact_phone: string
   emergency_contact_relationship: string
+  residence_country: number | null
+  residence_city: number | null
 }
 
 const EMPTY_FORM: EmployeeFormValues = {
@@ -59,6 +69,11 @@ const EMPTY_FORM: EmployeeFormValues = {
   phone: '',
   cell_phone: '',
   address: '',
+  expedition_country: null,
+  document_expedition_date: '',
+  document_expedition_city: null,
+  birth_country: null,
+  birth_city: null,
   gender: '',
   date_of_birth: '',
   marital_status: '',
@@ -70,7 +85,6 @@ const EMPTY_FORM: EmployeeFormValues = {
   num_libreta_militar: '',
   weight: '',
   height: '',
-  resume_format: '',
   uniform_pants: '',
   uniform_shirt: '',
   uniform_shoes: '',
@@ -78,48 +92,72 @@ const EMPTY_FORM: EmployeeFormValues = {
   emergency_contact_name: '',
   emergency_contact_phone: '',
   emergency_contact_relationship: '',
+  residence_country: null,
+  residence_city: null,
+}
+
+function countryIdFromDetail(
+  country: CountryNested | null | undefined,
+  city: CityNested | null | undefined,
+): number | null {
+  if (country?.id != null) return country.id
+  if (city?.country_id != null) return city.country_id
+  return null
 }
 
 function toEmployeeApiBody(data: EmployeeFormValues): Record<string, unknown> {
-  const docRaw = String(data.document_number ?? '').replace(/\s/g, '')
+  const { expedition_country: _e, ...rest } = data
+  void _e
+  const docRaw = String(rest.document_number ?? '').replace(/\s/g, '')
   return {
-    document_type: data.document_type ?? 0,
+    document_type: rest.document_type ?? 0,
     document_number: docRaw ? Number(docRaw) : 0,
-    first_name: data.first_name.trim(),
-    second_name: data.second_name.trim(),
-    first_last_name: data.first_last_name.trim(),
-    second_last_name: data.second_last_name.trim(),
-    email: data.email.trim(),
-    personal_email: data.personal_email.trim(),
-    phone: data.phone.trim(),
-    cell_phone: data.cell_phone.trim(),
-    address: data.address.trim(),
-    gender: data.gender,
-    date_of_birth: data.date_of_birth || null,
-    marital_status: data.marital_status,
-    blood_type: data.blood_type,
-    socioeconomic_stratum: data.socioeconomic_stratum ? String(data.socioeconomic_stratum) : '',
-    weight: data.weight.trim(),
-    height: data.height.trim(),
-    resume_format: data.resume_format,
-    profession: data.profession,
-    education_level: data.education_level,
-    employee_number: data.employee_number.trim(),
-    status: data.status,
-    num_libreta_militar: data.num_libreta_militar.trim(),
-    uniform_pants: data.uniform_pants.trim(),
-    uniform_shirt: data.uniform_shirt.trim(),
-    uniform_shoes: data.uniform_shoes.trim(),
-    emergency_contact_name: data.emergency_contact_name.trim(),
-    emergency_contact_phone: data.emergency_contact_phone.trim(),
-    emergency_contact_relationship: data.emergency_contact_relationship.trim(),
+    first_name: rest.first_name.trim(),
+    second_name: rest.second_name.trim(),
+    first_last_name: rest.first_last_name.trim(),
+    second_last_name: rest.second_last_name.trim(),
+    email: rest.email.trim(),
+    personal_email: rest.personal_email.trim(),
+    phone: rest.phone.trim(),
+    cell_phone: rest.cell_phone.trim(),
+    address: rest.address.trim(),
+    gender: rest.gender,
+    date_of_birth: rest.date_of_birth || null,
+    marital_status: rest.marital_status,
+    blood_type: rest.blood_type,
+    socioeconomic_stratum: rest.socioeconomic_stratum
+      ? String(rest.socioeconomic_stratum)
+      : '',
+    weight: rest.weight.trim(),
+    height: rest.height.trim(),
+    profession: rest.profession,
+    education_level: rest.education_level,
+    employee_number: rest.employee_number.trim(),
+    status: rest.status,
+    num_libreta_militar: rest.num_libreta_militar.trim(),
+    uniform_pants: rest.uniform_pants.trim(),
+    uniform_shirt: rest.uniform_shirt.trim(),
+    uniform_shoes: rest.uniform_shoes.trim(),
+    emergency_contact_name: rest.emergency_contact_name.trim(),
+    emergency_contact_phone: rest.emergency_contact_phone.trim(),
+    emergency_contact_relationship: rest.emergency_contact_relationship.trim(),
+    document_expedition_date: rest.document_expedition_date || null,
+    document_expedition_city: rest.document_expedition_city,
+    birth_country: rest.birth_country,
+    birth_city: rest.birth_city,
+    residence_country: rest.residence_country,
+    residence_city: rest.residence_city,
   }
 }
 
 function bodyToFormData(body: Record<string, unknown>): FormData {
   const fd = new FormData()
   for (const [key, v] of Object.entries(body)) {
-    if (v === undefined || v === null) continue
+    if (v === undefined) continue
+    if (v === null) {
+      fd.append(key, '')
+      continue
+    }
     if (typeof v === 'boolean') {
       fd.append(key, v ? 'true' : 'false')
       continue
@@ -140,13 +178,27 @@ function validateImageFile(f: File | undefined): string | null {
   return null
 }
 
+function validateResumeFile(f: File | undefined): string | null {
+  if (!f) return null
+  if (f.size > RESUME_MAX_BYTES) {
+    return 'El PDF no puede superar 3 MB.'
+  }
+  const okType = f.type === PDF_ACCEPT || f.type === '' // algunos browsers dejan type vacío
+  const okName = (f.name || '').toLowerCase().endsWith('.pdf')
+  if (!okType && !okName) {
+    return 'Solo se acepta un archivo PDF.'
+  }
+  return null
+}
+
 function applyServerFieldErrors(err: unknown, setError: UseFormSetError<EmployeeFormValues>) {
   if (!isAxiosError(err) || err.response?.status !== 400) return
   const data = err.response.data
   if (!data || typeof data !== 'object' || Array.isArray(data)) return
-  const skip = new Set(['detail', 'non_field_errors'])
+  const skip = new Set(['detail', 'non_field_errors', 'resume_file', 'photo'])
   for (const [key, val] of Object.entries(data)) {
     if (skip.has(key)) continue
+    if (!(key in EMPTY_FORM)) continue
     const message = Array.isArray(val) ? String(val[0]) : String(val)
     setError(key as keyof EmployeeFormValues, { type: 'server', message })
   }
@@ -183,6 +235,7 @@ export default function EmployeeFormPage() {
   const isEdit = !!id
   const navigate = useNavigate()
   const photoInput = useRef<HTMLInputElement>(null)
+  const resumeInput = useRef<HTMLInputElement>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [fileError, setFileError] = useState<string | null>(null)
 
@@ -202,9 +255,43 @@ export default function EmployeeFormPage() {
     queryFn: () => catalogsApi.documentTypes(),
   })
 
-  const { register, handleSubmit, reset, control, setError, formState: { errors, isSubmitting } } = useForm<EmployeeFormValues>({
+  const { data: countries = [], isLoading: countriesLoading } = useQuery({
+    queryKey: ['catalog', 'countries'],
+    queryFn: () => tenantsApi.getCountries(),
+  })
+
+  const { register, handleSubmit, reset, control, setError, setValue, formState: { errors, isSubmitting } } = useForm<EmployeeFormValues>({
     defaultValues: EMPTY_FORM,
   })
+
+  const birthCountryId = useWatch({ control, name: 'birth_country' })
+  const residenceCountryId = useWatch({ control, name: 'residence_country' })
+  const expeditionCountryId = useWatch({ control, name: 'expedition_country' })
+
+  const birthCountryNum = birthCountryId && birthCountryId > 0 ? birthCountryId : 0
+  const residenceCountryNum = residenceCountryId && residenceCountryId > 0 ? residenceCountryId : 0
+  const expeditionCountryNum = expeditionCountryId && expeditionCountryId > 0 ? expeditionCountryId : 0
+
+  const { data: birthCities = [], isPending: birthCitiesPending } = useQuery({
+    queryKey: ['catalog', 'cities', 'birth', birthCountryNum],
+    queryFn: () => tenantsApi.getCities(birthCountryNum),
+    enabled: birthCountryNum > 0,
+  })
+  const { data: residenceCities = [], isPending: residenceCitiesPending } = useQuery({
+    queryKey: ['catalog', 'cities', 'residence', residenceCountryNum],
+    queryFn: () => tenantsApi.getCities(residenceCountryNum),
+    enabled: residenceCountryNum > 0,
+  })
+  const { data: expeditionCities = [], isPending: expeditionCitiesPending } = useQuery({
+    queryKey: ['catalog', 'cities', 'expedition', expeditionCountryNum],
+    queryFn: () => tenantsApi.getCities(expeditionCountryNum),
+    enabled: expeditionCountryNum > 0,
+  })
+
+  const countryOptions = useMemo<SearchableOption[]>(
+    () => countries.map((c) => ({ value: String(c.id), label: c.name })),
+    [countries],
+  )
 
   const professionOptions = useMemo<SearchableOption[]>(() => {
     const fromApi = professions.map((p) => ({ value: String(p.id), label: p.name }))
@@ -232,12 +319,47 @@ export default function EmployeeFormPage() {
     return fromApi
   }, [documentTypes, employee])
 
+  const birthCityOptions = useMemo<SearchableOption[]>(() => {
+    const fromApi = birthCities.map((c) => ({ value: String(c.id), label: c.name }))
+    if (employee?.birth_city && countryIdFromDetail(employee.birth_country, employee.birth_city) === birthCountryNum) {
+      const cid = String(employee.birth_city.id)
+      if (!fromApi.some((o) => o.value === cid)) {
+        return [{ value: cid, label: employee.birth_city.name }, ...fromApi]
+      }
+    }
+    return fromApi
+  }, [birthCities, employee, birthCountryNum])
+
+  const residenceCityOptions = useMemo<SearchableOption[]>(() => {
+    const fromApi = residenceCities.map((c) => ({ value: String(c.id), label: c.name }))
+    if (employee?.residence_city
+      && countryIdFromDetail(employee.residence_country, employee.residence_city) === residenceCountryNum) {
+      const cid = String(employee.residence_city.id)
+      if (!fromApi.some((o) => o.value === cid)) {
+        return [{ value: cid, label: employee.residence_city.name }, ...fromApi]
+      }
+    }
+    return fromApi
+  }, [residenceCities, employee, residenceCountryNum])
+
+  const expeditionCityOptions = useMemo<SearchableOption[]>(() => {
+    const fromApi = expeditionCities.map((c) => ({ value: String(c.id), label: c.name }))
+    if (employee?.document_expedition_city && employee.document_expedition_city.country_id === expeditionCountryNum) {
+      const cid = String(employee.document_expedition_city.id)
+      if (!fromApi.some((o) => o.value === cid)) {
+        return [{ value: cid, label: employee.document_expedition_city.name }, ...fromApi]
+      }
+    }
+    return fromApi
+  }, [expeditionCities, employee, expeditionCountryNum])
+
   useEffect(() => {
     if (employee) {
       const estrato =
         employee.socioeconomic_stratum != null && String(employee.socioeconomic_stratum).trim() !== ''
           ? String(employee.socioeconomic_stratum)
           : ''
+      const expCountry = countryIdFromDetail(undefined, employee.document_expedition_city)
       reset({
         document_type: employee.document_type.id,
         document_number: String(employee.document_number ?? ''),
@@ -250,6 +372,11 @@ export default function EmployeeFormPage() {
         phone: employee.phone,
         cell_phone: employee.cell_phone,
         address: employee.address,
+        expedition_country: expCountry,
+        document_expedition_date: employee.document_expedition_date ?? '',
+        document_expedition_city: employee.document_expedition_city?.id ?? null,
+        birth_country: countryIdFromDetail(employee.birth_country, employee.birth_city),
+        birth_city: employee.birth_city?.id ?? null,
         gender: employee.gender,
         date_of_birth: employee.date_of_birth ?? '',
         marital_status: employee.marital_status,
@@ -261,7 +388,6 @@ export default function EmployeeFormPage() {
         num_libreta_militar: employee.num_libreta_militar ?? '',
         weight: employee.weight ?? '',
         height: employee.height ?? '',
-        resume_format: employee.resume_format ?? '',
         uniform_pants: employee.uniform_pants ?? '',
         uniform_shirt: employee.uniform_shirt ?? '',
         uniform_shoes: employee.uniform_shoes ?? '',
@@ -269,37 +395,73 @@ export default function EmployeeFormPage() {
         emergency_contact_name: employee.emergency_contact_name,
         emergency_contact_phone: employee.emergency_contact_phone,
         emergency_contact_relationship: employee.emergency_contact_relationship,
+        residence_country: countryIdFromDetail(employee.residence_country, employee.residence_city),
+        residence_city: employee.residence_city?.id ?? null,
       })
       setPhotoPreview(employee.photo ?? null)
     }
   }, [employee, reset])
 
+  const runSave = async (values: EmployeeFormValues, photoFile: File | null, resumeFile: File | null) => {
+    const body = toEmployeeApiBody(values)
+    const multipart = photoFile != null || resumeFile != null
+    if (multipart) {
+      const fd = bodyToFormData(body)
+      if (photoFile) fd.append('photo', photoFile)
+      if (resumeFile) fd.append('resume_file', resumeFile)
+      if (isEdit) return personnelApi.updateEmployeeForm(id!, fd)
+      return personnelApi.createEmployeeForm(fd)
+    }
+    if (isEdit) return personnelApi.updateEmployee(id!, body as Partial<Employee>)
+    return personnelApi.createEmployee(body as Partial<Employee>)
+  }
+
   const createMutation = useMutation({
-    mutationFn: async ({ values, photoFile }: { values: EmployeeFormValues; photoFile: File | null }) => {
-      const body = toEmployeeApiBody(values)
-      if (photoFile) {
-        const fd = bodyToFormData(body)
-        fd.append('photo', photoFile)
-        return personnelApi.createEmployeeForm(fd)
-      }
-      return personnelApi.createEmployee(body as Partial<Employee>)
-    },
+    mutationFn: ({
+      values,
+      photoFile,
+      resumeFile,
+    }: { values: EmployeeFormValues; photoFile: File | null; resumeFile: File | null }) =>
+      runSave(values, photoFile, resumeFile),
     onSuccess: (e) => navigate(`/personnel/employees/${e.id}`),
-    onError: (err) => applyServerFieldErrors(err, setError),
+    onError: (err) => {
+      applyServerFieldErrors(err, setError)
+      if (isAxiosError(err) && err.response?.status === 400) {
+        const d = err.response.data
+        if (d && typeof d === 'object' && !Array.isArray(d) && d.resume_file) {
+          const m = Array.isArray(d.resume_file) ? d.resume_file[0] : d.resume_file
+          setFileError(String(m))
+        }
+        if (d && typeof d === 'object' && !Array.isArray(d) && d.photo) {
+          const m = Array.isArray(d.photo) ? d.photo[0] : d.photo
+          setFileError(String(m))
+        }
+      }
+    },
   })
 
   const updateMutation = useMutation({
-    mutationFn: async ({ values, photoFile }: { values: EmployeeFormValues; photoFile: File | null }) => {
-      const body = toEmployeeApiBody(values)
-      if (photoFile) {
-        const fd = bodyToFormData(body)
-        fd.append('photo', photoFile)
-        return personnelApi.updateEmployeeForm(id!, fd)
-      }
-      return personnelApi.updateEmployee(id!, body as Partial<Employee>)
-    },
+    mutationFn: ({
+      values,
+      photoFile,
+      resumeFile,
+    }: { values: EmployeeFormValues; photoFile: File | null; resumeFile: File | null }) =>
+      runSave(values, photoFile, resumeFile),
     onSuccess: () => navigate(`/personnel/employees/${id}`),
-    onError: (err) => applyServerFieldErrors(err, setError),
+    onError: (err) => {
+      applyServerFieldErrors(err, setError)
+      if (isAxiosError(err) && err.response?.status === 400) {
+        const d = err.response.data
+        if (d && typeof d === 'object' && !Array.isArray(d) && d.resume_file) {
+          const m = Array.isArray(d.resume_file) ? d.resume_file[0] : d.resume_file
+          setFileError(String(m))
+        }
+        if (d && typeof d === 'object' && !Array.isArray(d) && d.photo) {
+          const m = Array.isArray(d.photo) ? d.photo[0] : d.photo
+          setFileError(String(m))
+        }
+      }
+    },
   })
 
   const onPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -317,8 +479,21 @@ export default function EmployeeFormPage() {
     }
   }
 
+  const onResumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFileError(null)
+    const f = e.target.files?.[0]
+    if (f) {
+      const err = validateResumeFile(f)
+      if (err) {
+        setFileError(err)
+        e.target.value = ''
+      }
+    }
+  }
+
   const onSubmit = (values: EmployeeFormValues) => {
     const photoFile = photoInput.current?.files?.[0] ?? null
+    const resumeFile = resumeInput.current?.files?.[0] ?? null
     if (photoFile) {
       const e = validateImageFile(photoFile)
       if (e) {
@@ -326,8 +501,15 @@ export default function EmployeeFormPage() {
         return
       }
     }
+    if (resumeFile) {
+      const e = validateResumeFile(resumeFile)
+      if (e) {
+        setFileError(e)
+        return
+      }
+    }
     setFileError(null)
-    const payload = { values, photoFile }
+    const payload = { values, photoFile, resumeFile }
     if (isEdit) updateMutation.mutate(payload)
     else createMutation.mutate(payload)
   }
@@ -391,6 +573,82 @@ export default function EmployeeFormPage() {
             <Field label="N° empleado" error={errors.employee_number?.message}>
               <input {...register('employee_number')} className="input" placeholder="Ej. EMP-001" />
             </Field>
+            <div className="sm:col-span-2 lg:col-span-3">
+              <label className="block text-sm font-semibold text-summa-ink mb-1">Foto</label>
+              <input
+                ref={photoInput}
+                type="file"
+                accept={IMAGE_ACCEPT}
+                onChange={onPhotoChange}
+                className="text-sm text-summa-ink-light file:mr-3 file:py-2 file:px-3 file:rounded-summa file:border-0 file:bg-[#212f87] file:text-white file:text-xs file:font-semibold"
+              />
+              <p className="text-xs text-summa-ink-light mt-1">JPG, PNG o WebP, máx. 2 MB.</p>
+              {photoPreview && (
+                <div className="mt-3 rounded-summa border border-summa-border p-3 bg-white inline-block max-w-[200px]">
+                  <img src={photoPreview} alt="Vista previa" className="max-h-32 object-contain mx-auto" />
+                </div>
+              )}
+            </div>
+            <Field label="Fecha de expedición del documento" error={errors.document_expedition_date?.message}>
+              <input type="date" {...register('document_expedition_date')} className="input" />
+            </Field>
+            <Field label="País de expedición">
+              <Controller
+                name="expedition_country"
+                control={control}
+                render={({ field }) => (
+                  <SelectSearchable
+                    inputId="employee-exp-country"
+                    options={countryOptions}
+                    value={
+                      field.value != null
+                        ? countryOptions.find((o) => o.value === String(field.value)) ?? null
+                        : null
+                    }
+                    onChange={(opt) => {
+                      field.onChange(opt ? Number(opt.value) : null)
+                      setValue('document_expedition_city', null)
+                    }}
+                    isLoading={countriesLoading}
+                    isDisabled={countriesLoading}
+                    isClearable
+                    placeholder={countriesLoading ? 'Cargando…' : 'Buscar o elegir país…'}
+                    noOptionsMessage={() => 'Sin resultados'}
+                    loadingMessage={() => 'Cargando…'}
+                  />
+                )}
+              />
+            </Field>
+            <Field label="Ciudad de expedición" error={errors.document_expedition_city?.message}>
+              <Controller
+                name="document_expedition_city"
+                control={control}
+                render={({ field }) => (
+                  <SelectSearchable
+                    inputId="employee-exp-city"
+                    options={expeditionCityOptions}
+                    value={
+                      field.value != null
+                        ? expeditionCityOptions.find((o) => o.value === String(field.value)) ?? null
+                        : null
+                    }
+                    onChange={(opt) => field.onChange(opt ? Number(opt.value) : null)}
+                    isLoading={expeditionCitiesPending}
+                    isDisabled={!expeditionCountryNum || expeditionCitiesPending}
+                    isClearable
+                    placeholder={
+                      !expeditionCountryNum
+                        ? 'Elija primero un país'
+                        : expeditionCitiesPending
+                          ? 'Cargando ciudades…'
+                          : 'Buscar o elegir ciudad…'
+                    }
+                    noOptionsMessage={() => 'Sin resultados'}
+                    loadingMessage={() => 'Cargando…'}
+                  />
+                )}
+              />
+            </Field>
             <Field label="N° libreta militar">
               <input {...register('num_libreta_militar')} className="input" placeholder="Ej. 1234567890" maxLength={10} />
             </Field>
@@ -410,6 +668,63 @@ export default function EmployeeFormPage() {
             </Field>
             <Field label="Segundo apellido">
               <input {...register('second_last_name')} className="input" />
+            </Field>
+            <Field label="País de nacimiento" error={errors.birth_country?.message}>
+              <Controller
+                name="birth_country"
+                control={control}
+                render={({ field }) => (
+                  <SelectSearchable
+                    inputId="employee-birth-country"
+                    options={countryOptions}
+                    value={
+                      field.value != null
+                        ? countryOptions.find((o) => o.value === String(field.value)) ?? null
+                        : null
+                    }
+                    onChange={(opt) => {
+                      field.onChange(opt ? Number(opt.value) : null)
+                      setValue('birth_city', null)
+                    }}
+                    isLoading={countriesLoading}
+                    isDisabled={countriesLoading}
+                    isClearable
+                    placeholder={countriesLoading ? 'Cargando…' : 'Buscar o elegir país…'}
+                    noOptionsMessage={() => 'Sin resultados'}
+                    loadingMessage={() => 'Cargando…'}
+                  />
+                )}
+              />
+            </Field>
+            <Field label="Ciudad de nacimiento" error={errors.birth_city?.message}>
+              <Controller
+                name="birth_city"
+                control={control}
+                render={({ field }) => (
+                  <SelectSearchable
+                    inputId="employee-birth-city"
+                    options={birthCityOptions}
+                    value={
+                      field.value != null
+                        ? birthCityOptions.find((o) => o.value === String(field.value)) ?? null
+                        : null
+                    }
+                    onChange={(opt) => field.onChange(opt ? Number(opt.value) : null)}
+                    isLoading={birthCitiesPending}
+                    isDisabled={!birthCountryNum || birthCitiesPending}
+                    isClearable
+                    placeholder={
+                      !birthCountryNum
+                        ? 'Elija primero un país'
+                        : birthCitiesPending
+                          ? 'Cargando ciudades…'
+                          : 'Buscar o elegir ciudad…'
+                    }
+                    noOptionsMessage={() => 'Sin resultados'}
+                    loadingMessage={() => 'Cargando…'}
+                  />
+                )}
+              />
             </Field>
             <Field label="Género">
               <select {...register('gender')} className="input">
@@ -472,6 +787,63 @@ export default function EmployeeFormPage() {
             <Field label="Dirección">
               <input {...register('address')} className="input" />
             </Field>
+            <Field label="País de residencia" error={errors.residence_country?.message}>
+              <Controller
+                name="residence_country"
+                control={control}
+                render={({ field }) => (
+                  <SelectSearchable
+                    inputId="employee-residence-country"
+                    options={countryOptions}
+                    value={
+                      field.value != null
+                        ? countryOptions.find((o) => o.value === String(field.value)) ?? null
+                        : null
+                    }
+                    onChange={(opt) => {
+                      field.onChange(opt ? Number(opt.value) : null)
+                      setValue('residence_city', null)
+                    }}
+                    isLoading={countriesLoading}
+                    isDisabled={countriesLoading}
+                    isClearable
+                    placeholder={countriesLoading ? 'Cargando…' : 'Buscar o elegir país…'}
+                    noOptionsMessage={() => 'Sin resultados'}
+                    loadingMessage={() => 'Cargando…'}
+                  />
+                )}
+              />
+            </Field>
+            <Field label="Ciudad de residencia" error={errors.residence_city?.message}>
+              <Controller
+                name="residence_city"
+                control={control}
+                render={({ field }) => (
+                  <SelectSearchable
+                    inputId="employee-residence-city"
+                    options={residenceCityOptions}
+                    value={
+                      field.value != null
+                        ? residenceCityOptions.find((o) => o.value === String(field.value)) ?? null
+                        : null
+                    }
+                    onChange={(opt) => field.onChange(opt ? Number(opt.value) : null)}
+                    isLoading={residenceCitiesPending}
+                    isDisabled={!residenceCountryNum || residenceCitiesPending}
+                    isClearable
+                    placeholder={
+                      !residenceCountryNum
+                        ? 'Elija primero un país'
+                        : residenceCitiesPending
+                          ? 'Cargando ciudades…'
+                          : 'Buscar o elegir ciudad…'
+                    }
+                    noOptionsMessage={() => 'Sin resultados'}
+                    loadingMessage={() => 'Cargando…'}
+                  />
+                )}
+              />
+            </Field>
           </div>
         </Section>
 
@@ -517,30 +889,14 @@ export default function EmployeeFormPage() {
           </div>
         </Section>
 
-        <Section title="Datos físicos y foto">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Section title="Datos físicos">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
             <Field label="Peso (kg)" error={errors.weight?.message}>
               <input {...register('weight')} className="input" placeholder="Ej. 70" maxLength={10} />
             </Field>
             <Field label="Estatura (cm)" error={errors.height?.message}>
               <input {...register('height')} className="input" placeholder="Ej. 175" maxLength={10} />
             </Field>
-            <div className="sm:col-span-2 lg:col-span-1">
-              <label className="block text-sm font-semibold text-summa-ink mb-1">Foto</label>
-              <input
-                ref={photoInput}
-                type="file"
-                accept={IMAGE_ACCEPT}
-                onChange={onPhotoChange}
-                className="text-sm text-summa-ink-light file:mr-3 file:py-2 file:px-3 file:rounded-summa file:border-0 file:bg-[#212f87] file:text-white file:text-xs file:font-semibold"
-              />
-              <p className="text-xs text-summa-ink-light mt-1">JPG, PNG o WebP, máx. 2 MB.</p>
-              {photoPreview && (
-                <div className="mt-3 rounded-summa border border-summa-border p-3 bg-white inline-block max-w-[200px]">
-                  <img src={photoPreview} alt="Vista previa" className="max-h-32 object-contain mx-auto" />
-                </div>
-              )}
-            </div>
           </div>
         </Section>
 
@@ -559,15 +915,28 @@ export default function EmployeeFormPage() {
         </Section>
 
         <Section title="Hoja de vida">
-          <div className="max-w-md">
-            <Field label="Formato de hoja de vida" error={errors.resume_format?.message}>
-              <select {...register('resume_format')} className="input">
-                <option value="">— Sin indicar —</option>
-                <option value="pdf">PDF</option>
-                <option value="word">Word</option>
-                <option value="physical">Físico</option>
-              </select>
-            </Field>
+          <div className="max-w-xl space-y-2">
+            <label className="block text-sm font-semibold text-summa-ink">Archivo PDF (máx. 3 MB)</label>
+            <input
+              ref={resumeInput}
+              type="file"
+              accept="application/pdf,.pdf"
+              onChange={onResumeChange}
+              className="text-sm text-summa-ink-light file:mr-3 file:py-2 file:px-3 file:rounded-summa file:border-0 file:bg-[#212f87] file:text-white file:text-xs file:font-semibold"
+            />
+            {isEdit && employee?.resume_file && (
+              <p className="text-sm text-summa-ink">
+                Archivo actual:{' '}
+                <a
+                  href={employee.resume_file}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-summa-navy font-semibold hover:text-summa-magenta"
+                >
+                  Ver PDF
+                </a>
+              </p>
+            )}
           </div>
         </Section>
 

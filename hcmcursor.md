@@ -11,7 +11,11 @@ Este archivo solo sirve para abrir un chat con contexto fijo y, si quieres, **no
 
 ## Notas de sesión (opcional, volátil)
 
-- *(vacío — borra este bullet o sustitúyelo por lo que deba recordarse solo entre chats; lo estable va a `project_context.md`.)*
+- **Rama activa (último estado):** `feature/contratFields` (sale de `develop`). Cambios Nomiweb empleado/contrato: modelo/serializer/UI + migración `personnel.0003_add_remaining_nomiweb_fields` — si el listado de empleados falla, ejecutar `migrate` en la misma DB que usa el API.
+- **Venv local habitual:** `/Users/guidoangulo/GitKrakenRepos/entornos/hcm` → `python manage.py …`
+- **GitKraken:** abrir repo raíz `…/organization/talent-hcm` (no la carpeta anidada `TALENT-HCM/` ni el padre `organization` solo).
+- **Remoto:** `origin` → https://github.com/summabpo/TALENT-HCM.git
+- Pendiente en esa rama (si no se commiteó aún): revisar `git status`, commit + `git push -u origin feature/contratFields` y PR hacia `develop`.
 
 ---
 

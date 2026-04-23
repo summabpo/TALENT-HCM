@@ -36,9 +36,6 @@ export const personnelApi = {
       })
       .then((r) => r.data),
 
-  deleteEmployee: (id: string) =>
-    apiClient.delete(`/personnel/employees/${id}/`),
-
   // Contracts
   contracts: (employeeId: string) =>
     apiClient.get<Contract[]>(`/personnel/employees/${employeeId}/contracts/`).then(r => r.data),

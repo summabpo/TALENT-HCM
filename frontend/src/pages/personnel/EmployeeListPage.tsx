@@ -1,11 +1,10 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { personnelApi } from '@/api/personnel'
 import Breadcrumb from '@/components/ui/Breadcrumb'
 import DataTable from '@/components/ui/DataTable'
 import Badge from '@/components/ui/Badge'
-import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import type { EmployeeList } from '@/types'
 
 const STATUS_MAP: Record<string, { label: string; variant: 'green' | 'gray' | 'magenta' | 'purple' }> = {
@@ -17,19 +16,12 @@ const STATUS_MAP: Record<string, { label: string; variant: 'green' | 'gray' | 'm
 
 export default function EmployeeListPage() {
   const navigate = useNavigate()
-  const qc = useQueryClient()
   const [search, setSearch] = useState('')
   const [page, setPage]     = useState(1)
-  const [deleteId, setDeleteId] = useState<string | null>(null)
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['employees', page, search],
     queryFn: () => personnelApi.employees({ page: String(page), search }),
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => personnelApi.deleteEmployee(id),
-    onSuccess: () => { setDeleteId(null); qc.invalidateQueries({ queryKey: ['employees'] }) },
   })
 
   const columns = [
@@ -74,12 +66,6 @@ export default function EmployeeListPage() {
           >
             Contratos
           </button>
-          <button
-            onClick={() => setDeleteId(row.id)}
-            className="btn-sm inline-flex items-center text-summa-magenta border border-summa-magenta/30 hover:bg-summa-magenta hover:text-white rounded-summa px-3 py-1.5 text-xs font-semibold transition-all"
-          >
-            Eliminar
-          </button>
         </div>
       ),
     },
@@ -118,16 +104,6 @@ export default function EmployeeListPage() {
           searchPlaceholder="Buscar por nombre o documento..."
         />
       </div>
-
-      <ConfirmDialog
-        open={!!deleteId}
-        title="Eliminar empleado"
-        message="¿Estás seguro de que deseas eliminar este empleado? Esta acción no se puede deshacer."
-        confirmLabel="Eliminar" danger
-        loading={deleteMutation.isPending}
-        onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
-        onCancel={() => setDeleteId(null)}
-      />
     </div>
   )
 }

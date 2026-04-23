@@ -130,6 +130,10 @@ class Employee(TimestampedTenantModel):
 
     # Photo
     photo = models.ImageField(upload_to='employees/photos/', blank=True, null=True)
+    # CV (single PDF, Talent UI); resume_format may mirror Nomiweb as pdf|word|physical
+    resume_file = models.FileField(
+        _('resume file (PDF)'), upload_to='employees/resumes/', blank=True, null=True,
+    )
 
     # Organizational (Talent-native)
     department = models.ForeignKey(
