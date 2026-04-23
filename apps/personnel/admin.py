@@ -62,7 +62,8 @@ class EmployeeAdmin(TenantModelAdmin):
         ('Datos personales', {
             'classes': ('collapse',),
             'fields': (
-                'gender', 'date_of_birth', 'marital_status',
+                'gender', 'weight', 'height', 'resume_format',
+                'date_of_birth', 'marital_status',
                 'blood_type', 'socioeconomic_stratum',
                 'birth_city', 'birth_country',
                 'residence_city', 'residence_country',
@@ -73,6 +74,7 @@ class EmployeeAdmin(TenantModelAdmin):
         ('Dotación / Emergencia', {
             'classes': ('collapse',),
             'fields': (
+                'photo',
                 'uniform_pants', 'uniform_shirt', 'uniform_shoes',
                 'emergency_contact_name', 'emergency_contact_phone',
                 'emergency_contact_relationship',

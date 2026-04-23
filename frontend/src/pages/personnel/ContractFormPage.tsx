@@ -19,13 +19,28 @@ type FormValues = {
   salary_mode: string
   salary_type: string
   transport_allowance: boolean
+  payment_method: string
   position: string
   work_center: string
   eps: string
+  afp: string
   ccf: string
   contributor_type: string
+  dependents: string
+  is_pensioner: string
+  housing_deductible: string
+  health_deductible: string
+  medical_deductible: string
+  legacy_contract_id: string
   is_current: boolean
   notes: string
+}
+
+function intOrNull(s: string): number | null {
+  const t = s.trim()
+  if (!t) return null
+  const n = Number(t)
+  return Number.isFinite(n) ? Math.trunc(n) : null
 }
 
 function toPayload(v: FormValues): Record<string, unknown> {
@@ -39,11 +54,19 @@ function toPayload(v: FormValues): Record<string, unknown> {
     salary_mode: v.salary_mode,
     salary_type: v.salary_type?.trim() ? Number(v.salary_type) : null,
     transport_allowance: v.transport_allowance,
+    payment_method: v.payment_method.trim(),
     position: v.position,
     work_center: v.work_center,
     eps: Number(v.eps),
+    afp: v.afp.trim() ? Number(v.afp) : null,
     ccf: Number(v.ccf),
     contributor_type: v.contributor_type,
+    dependents: intOrNull(v.dependents),
+    is_pensioner: v.is_pensioner.trim(),
+    housing_deductible: intOrNull(v.housing_deductible),
+    health_deductible: intOrNull(v.health_deductible),
+    medical_deductible: intOrNull(v.medical_deductible),
+    legacy_contract_id: v.legacy_contract_id.trim(),
     is_current: v.is_current,
     notes: v.notes.trim(),
   }
@@ -87,6 +110,10 @@ export default function ContractFormPage() {
     queryKey: ['catalog', 'eps'],
     queryFn: () => catalogsApi.socialSecurityByType('EPS'),
   })
+  const { data: afpList = [], isLoading: loadingAfp } = useQuery({
+    queryKey: ['catalog', 'afp'],
+    queryFn: () => catalogsApi.socialSecurityByType('AFP'),
+  })
   const { data: ccfList = [], isLoading: loadingCcf } = useQuery({
     queryKey: ['catalog', 'ccf'],
     queryFn: () => catalogsApi.socialSecurityByType('CCF'),
@@ -97,7 +124,7 @@ export default function ContractFormPage() {
   })
 
   const catalogsLoading =
-    loadingCT || loadingST || loadingPos || loadingWc || loadingEps || loadingCcf || loadingContrib
+    loadingCT || loadingST || loadingPos || loadingWc || loadingEps || loadingAfp || loadingCcf || loadingContrib
 
   const defaultContributor = useMemo(
     () => contributorTypes[0]?.code ?? '01',
@@ -113,11 +140,19 @@ export default function ContractFormPage() {
       salary_mode: 'fixed',
       salary_type: '',
       transport_allowance: false,
+      payment_method: '',
       position: '',
       work_center: '',
       eps: '',
+      afp: '',
       ccf: '',
       contributor_type: '',
+      dependents: '',
+      is_pensioner: '',
+      housing_deductible: '',
+      health_deductible: '',
+      medical_deductible: '',
+      legacy_contract_id: '',
       is_current: true,
       notes: '',
     },
@@ -137,11 +172,19 @@ export default function ContractFormPage() {
           ? String(c.salary_type as string | number)
           : '',
       transport_allowance: Boolean(c.transport_allowance),
+      payment_method: c.payment_method ?? '',
       position: c.position != null ? String(c.position) : '',
       work_center: c.work_center != null ? String(c.work_center) : '',
       eps: c.eps != null ? String(c.eps) : '',
+      afp: c.afp != null ? String(c.afp) : '',
       ccf: c.ccf != null ? String(c.ccf) : '',
       contributor_type: c.contributor_type != null ? String(c.contributor_type) : defaultContributor,
+      dependents: c.dependents != null ? String(c.dependents) : '',
+      is_pensioner: typeof c.is_pensioner === 'string' ? c.is_pensioner : '',
+      housing_deductible: c.housing_deductible != null ? String(c.housing_deductible) : '',
+      health_deductible: c.health_deductible != null ? String(c.health_deductible) : '',
+      medical_deductible: c.medical_deductible != null ? String(c.medical_deductible) : '',
+      legacy_contract_id: c.legacy_contract_id ?? '',
       is_current: c.is_current !== false,
       notes: c.notes ?? '',
     })
@@ -295,6 +338,32 @@ export default function ContractFormPage() {
               <input type="checkbox" {...register('transport_allowance')} className="rounded border-summa-border" />
               <span className="text-sm font-semibold text-summa-ink">Auxilio de transporte</span>
             </label>
+            <div>
+              <label className="block text-sm font-semibold text-summa-ink mb-1">Forma de pago</label>
+              <select {...register('payment_method')} className="input">
+                <option value="">— Sin indicar —</option>
+                <option value="transfer">Transferencia</option>
+                <option value="check">Cheque</option>
+                <option value="cash">Efectivo</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-summa-ink mb-1">Dependientes</label>
+              <input type="number" min={0} step={1} {...register('dependents')} className="input" placeholder="0" />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-semibold text-summa-ink mb-1">Pensionado</label>
+              <select {...register('is_pensioner')} className="input">
+                <option value="">— Sin indicar —</option>
+                <option value="not_applicable">No aplica</option>
+                <option value="active">Pensionado activo</option>
+                <option value="substitution">Sustitución</option>
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-semibold text-summa-ink mb-1">ID contrato en sistema anterior</label>
+              <input {...register('legacy_contract_id')} className="input font-mono text-sm" placeholder="Migración / Nomiweb" maxLength={25} />
+            </div>
             <label className="flex items-center gap-2 cursor-pointer sm:col-span-2">
               <input type="checkbox" {...register('is_current')} className="rounded border-summa-border" />
               <span className="text-sm font-semibold text-summa-ink">Marcar como contrato actual</span>
@@ -362,6 +431,20 @@ export default function ContractFormPage() {
               {errors.eps && <p className="text-summa-magenta text-xs mt-1">{errors.eps.message}</p>}
             </div>
             <div>
+              <label className="block text-sm font-semibold text-summa-ink mb-1">AFP / Fondo de pensión</label>
+              <select {...register('afp')} className="input" disabled={!afpList.length}>
+                <option value="">— Opcional —</option>
+                {afpList.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.name}
+                  </option>
+                ))}
+              </select>
+              {!afpList.length && !loadingAfp && (
+                <p className="text-xs text-summa-ink-light mt-1">No hay entidades AFP en catálogo.</p>
+              )}
+            </div>
+            <div>
               <label className="block text-sm font-semibold text-summa-ink mb-1">
                 Caja de compensación <span className="text-summa-magenta">*</span>
               </label>
@@ -394,6 +477,24 @@ export default function ContractFormPage() {
               {errors.contributor_type && (
                 <p className="text-summa-magenta text-xs mt-1">{errors.contributor_type.message}</p>
               )}
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <CardHeader title="Retención en la fuente (deducciones)" />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-summa-ink mb-1">Valor deducible vivienda ($)</label>
+              <input type="number" min={0} step={1} {...register('housing_deductible')} className="input" placeholder="0" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-summa-ink mb-1">Salud retefuente ($)</label>
+              <input type="number" min={0} step={1} {...register('health_deductible')} className="input" placeholder="0" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-summa-ink mb-1">Valor deducible medicina ($)</label>
+              <input type="number" min={0} step={1} {...register('medical_deductible')} className="input" placeholder="0" />
             </div>
           </div>
         </Card>

@@ -22,6 +22,20 @@ export const personnelApi = {
   updateEmployee: (id: string, data: Partial<Employee>) =>
     apiClient.patch<Employee>(`/personnel/employees/${id}/`, data).then(r => r.data),
 
+  createEmployeeForm: (formData: FormData) =>
+    apiClient
+      .post<Employee>('/personnel/employees/', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      .then((r) => r.data),
+
+  updateEmployeeForm: (id: string, formData: FormData) =>
+    apiClient
+      .patch<Employee>(`/personnel/employees/${id}/`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      .then((r) => r.data),
+
   deleteEmployee: (id: string) =>
     apiClient.delete(`/personnel/employees/${id}/`),
 

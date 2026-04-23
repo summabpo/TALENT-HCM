@@ -173,6 +173,9 @@ export interface Employee {
   socioeconomic_stratum: string | null
   profession: CatalogProfession | null
   education_level: string
+  weight?: string
+  height?: string
+  resume_format?: string
   document_expedition_date: string | null
   document_expedition_city: number | null
   uniform_pants: string
@@ -234,15 +237,16 @@ export interface Contract {
   contributor_subtype: string
   withholding_method: string
   withholding_percentage: string
-  housing_deductible: boolean
-  health_deductible: boolean
-  medical_deductible: boolean
-  dependents: number
+  housing_deductible: number | null
+  health_deductible: number | null
+  medical_deductible: number | null
+  dependents: number | null
   contract_status: string
   settlement_status: string
   social_security_status: string
-  is_pensioner: boolean
-  pension_risk: number | null
+  is_pensioner: string
+  pension_risk: boolean
+  legacy_contract_id?: string
   is_current: boolean
   document: string | null
   notes: string

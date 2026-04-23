@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useForm, Controller, type UseFormSetError } from 'react-hook-form'
 import { useQuery, useMutation } from '@tanstack/react-query'
@@ -11,7 +11,10 @@ import ErrorAlert from '@/components/ui/ErrorAlert'
 import SelectSearchable, { type SearchableOption } from '@/components/ui/SelectSearchable'
 import type { Employee } from '@/types'
 
-type FormData = {
+const IMAGE_MAX_BYTES = 2 * 1024 * 1024
+const IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp'
+
+type EmployeeFormValues = {
   document_type: number | null
   document_number: string
   first_name: string
@@ -32,13 +35,19 @@ type FormData = {
   education_level: string
   employee_number: string
   num_libreta_militar: string
+  weight: string
+  height: string
+  resume_format: string
+  uniform_pants: string
+  uniform_shirt: string
+  uniform_shoes: string
   status: string
   emergency_contact_name: string
   emergency_contact_phone: string
   emergency_contact_relationship: string
 }
 
-const EMPTY_FORM: FormData = {
+const EMPTY_FORM: EmployeeFormValues = {
   document_type: null,
   document_number: '',
   first_name: '',
@@ -59,13 +68,19 @@ const EMPTY_FORM: FormData = {
   education_level: '',
   employee_number: '',
   num_libreta_militar: '',
+  weight: '',
+  height: '',
+  resume_format: '',
+  uniform_pants: '',
+  uniform_shirt: '',
+  uniform_shoes: '',
   status: 'active',
   emergency_contact_name: '',
   emergency_contact_phone: '',
   emergency_contact_relationship: '',
 }
 
-function toEmployeeApiBody(data: FormData): Record<string, unknown> {
+function toEmployeeApiBody(data: EmployeeFormValues): Record<string, unknown> {
   const docRaw = String(data.document_number ?? '').replace(/\s/g, '')
   return {
     document_type: data.document_type ?? 0,
@@ -84,18 +99,48 @@ function toEmployeeApiBody(data: FormData): Record<string, unknown> {
     marital_status: data.marital_status,
     blood_type: data.blood_type,
     socioeconomic_stratum: data.socioeconomic_stratum ? String(data.socioeconomic_stratum) : '',
+    weight: data.weight.trim(),
+    height: data.height.trim(),
+    resume_format: data.resume_format,
     profession: data.profession,
     education_level: data.education_level,
     employee_number: data.employee_number.trim(),
     status: data.status,
     num_libreta_militar: data.num_libreta_militar.trim(),
+    uniform_pants: data.uniform_pants.trim(),
+    uniform_shirt: data.uniform_shirt.trim(),
+    uniform_shoes: data.uniform_shoes.trim(),
     emergency_contact_name: data.emergency_contact_name.trim(),
     emergency_contact_phone: data.emergency_contact_phone.trim(),
     emergency_contact_relationship: data.emergency_contact_relationship.trim(),
   }
 }
 
-function applyServerFieldErrors(err: unknown, setError: UseFormSetError<FormData>) {
+function bodyToFormData(body: Record<string, unknown>): FormData {
+  const fd = new FormData()
+  for (const [key, v] of Object.entries(body)) {
+    if (v === undefined || v === null) continue
+    if (typeof v === 'boolean') {
+      fd.append(key, v ? 'true' : 'false')
+      continue
+    }
+    fd.append(key, String(v))
+  }
+  return fd
+}
+
+function validateImageFile(f: File | undefined): string | null {
+  if (!f) return null
+  if (f.size > IMAGE_MAX_BYTES) {
+    return 'El archivo no puede superar 2 MB. Elige otra imagen (JPG, PNG o WebP).'
+  }
+  if (!/image\/(jpeg|png|webp)/i.test(f.type)) {
+    return 'Solo se permiten imágenes JPG, PNG o WebP.'
+  }
+  return null
+}
+
+function applyServerFieldErrors(err: unknown, setError: UseFormSetError<EmployeeFormValues>) {
   if (!isAxiosError(err) || err.response?.status !== 400) return
   const data = err.response.data
   if (!data || typeof data !== 'object' || Array.isArray(data)) return
@@ -103,7 +148,7 @@ function applyServerFieldErrors(err: unknown, setError: UseFormSetError<FormData
   for (const [key, val] of Object.entries(data)) {
     if (skip.has(key)) continue
     const message = Array.isArray(val) ? String(val[0]) : String(val)
-    setError(key as keyof FormData, { type: 'server', message })
+    setError(key as keyof EmployeeFormValues, { type: 'server', message })
   }
 }
 
@@ -137,6 +182,9 @@ export default function EmployeeFormPage() {
   const { id } = useParams<{ id: string }>()
   const isEdit = !!id
   const navigate = useNavigate()
+  const photoInput = useRef<HTMLInputElement>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [fileError, setFileError] = useState<string | null>(null)
 
   const { data: employee, isLoading } = useQuery({
     queryKey: ['employee', id],
@@ -154,7 +202,7 @@ export default function EmployeeFormPage() {
     queryFn: () => catalogsApi.documentTypes(),
   })
 
-  const { register, handleSubmit, reset, control, setError, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const { register, handleSubmit, reset, control, setError, formState: { errors, isSubmitting } } = useForm<EmployeeFormValues>({
     defaultValues: EMPTY_FORM,
   })
 
@@ -211,27 +259,79 @@ export default function EmployeeFormPage() {
         education_level: employee.education_level,
         employee_number: employee.employee_number,
         num_libreta_militar: employee.num_libreta_militar ?? '',
+        weight: employee.weight ?? '',
+        height: employee.height ?? '',
+        resume_format: employee.resume_format ?? '',
+        uniform_pants: employee.uniform_pants ?? '',
+        uniform_shirt: employee.uniform_shirt ?? '',
+        uniform_shoes: employee.uniform_shoes ?? '',
         status: employee.status,
         emergency_contact_name: employee.emergency_contact_name,
         emergency_contact_phone: employee.emergency_contact_phone,
         emergency_contact_relationship: employee.emergency_contact_relationship,
       })
+      setPhotoPreview(employee.photo ?? null)
     }
   }, [employee, reset])
 
   const createMutation = useMutation({
-    mutationFn: (d: FormData) => personnelApi.createEmployee(toEmployeeApiBody(d) as Partial<Employee>),
+    mutationFn: async ({ values, photoFile }: { values: EmployeeFormValues; photoFile: File | null }) => {
+      const body = toEmployeeApiBody(values)
+      if (photoFile) {
+        const fd = bodyToFormData(body)
+        fd.append('photo', photoFile)
+        return personnelApi.createEmployeeForm(fd)
+      }
+      return personnelApi.createEmployee(body as Partial<Employee>)
+    },
     onSuccess: (e) => navigate(`/personnel/employees/${e.id}`),
     onError: (err) => applyServerFieldErrors(err, setError),
   })
 
   const updateMutation = useMutation({
-    mutationFn: (d: FormData) => personnelApi.updateEmployee(id!, toEmployeeApiBody(d) as Partial<Employee>),
+    mutationFn: async ({ values, photoFile }: { values: EmployeeFormValues; photoFile: File | null }) => {
+      const body = toEmployeeApiBody(values)
+      if (photoFile) {
+        const fd = bodyToFormData(body)
+        fd.append('photo', photoFile)
+        return personnelApi.updateEmployeeForm(id!, fd)
+      }
+      return personnelApi.updateEmployee(id!, body as Partial<Employee>)
+    },
     onSuccess: () => navigate(`/personnel/employees/${id}`),
     onError: (err) => applyServerFieldErrors(err, setError),
   })
 
-  const onSubmit = (data: FormData) => (isEdit ? updateMutation.mutate(data) : createMutation.mutate(data))
+  const onPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFileError(null)
+    const f = e.target.files?.[0]
+    if (f) {
+      const err = validateImageFile(f)
+      if (err) {
+        setFileError(err)
+        e.target.value = ''
+        return
+      }
+      if (photoPreview && photoPreview.startsWith('blob:')) URL.revokeObjectURL(photoPreview)
+      setPhotoPreview(URL.createObjectURL(f))
+    }
+  }
+
+  const onSubmit = (values: EmployeeFormValues) => {
+    const photoFile = photoInput.current?.files?.[0] ?? null
+    if (photoFile) {
+      const e = validateImageFile(photoFile)
+      if (e) {
+        setFileError(e)
+        return
+      }
+    }
+    setFileError(null)
+    const payload = { values, photoFile }
+    if (isEdit) updateMutation.mutate(payload)
+    else createMutation.mutate(payload)
+  }
+
   const apiError = (createMutation.error || updateMutation.error) as Error | null
   const saving = isSubmitting || createMutation.isPending || updateMutation.isPending
 
@@ -250,6 +350,9 @@ export default function EmployeeFormPage() {
 
       {apiError && (
         <ErrorAlert message="Error al guardar. Verifica los datos." error={apiError} className="mb-4" />
+      )}
+      {fileError && (
+        <ErrorAlert message={fileError} className="mb-4" onRetry={() => setFileError(null)} />
       )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -409,6 +512,60 @@ export default function EmployeeFormPage() {
                 <option value="postgraduate">Posgrado</option>
                 <option value="master">Maestría</option>
                 <option value="doctorate">Doctorado</option>
+              </select>
+            </Field>
+          </div>
+        </Section>
+
+        <Section title="Datos físicos y foto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <Field label="Peso (kg)" error={errors.weight?.message}>
+              <input {...register('weight')} className="input" placeholder="Ej. 70" maxLength={10} />
+            </Field>
+            <Field label="Estatura (cm)" error={errors.height?.message}>
+              <input {...register('height')} className="input" placeholder="Ej. 175" maxLength={10} />
+            </Field>
+            <div className="sm:col-span-2 lg:col-span-1">
+              <label className="block text-sm font-semibold text-summa-ink mb-1">Foto</label>
+              <input
+                ref={photoInput}
+                type="file"
+                accept={IMAGE_ACCEPT}
+                onChange={onPhotoChange}
+                className="text-sm text-summa-ink-light file:mr-3 file:py-2 file:px-3 file:rounded-summa file:border-0 file:bg-[#212f87] file:text-white file:text-xs file:font-semibold"
+              />
+              <p className="text-xs text-summa-ink-light mt-1">JPG, PNG o WebP, máx. 2 MB.</p>
+              {photoPreview && (
+                <div className="mt-3 rounded-summa border border-summa-border p-3 bg-white inline-block max-w-[200px]">
+                  <img src={photoPreview} alt="Vista previa" className="max-h-32 object-contain mx-auto" />
+                </div>
+              )}
+            </div>
+          </div>
+        </Section>
+
+        <Section title="Dotación (tallas)">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Field label="Talla pantalón" error={errors.uniform_pants?.message}>
+              <input {...register('uniform_pants')} className="input" maxLength={10} />
+            </Field>
+            <Field label="Talla camisa" error={errors.uniform_shirt?.message}>
+              <input {...register('uniform_shirt')} className="input" maxLength={10} />
+            </Field>
+            <Field label="Talla zapatos" error={errors.uniform_shoes?.message}>
+              <input {...register('uniform_shoes')} className="input" maxLength={10} />
+            </Field>
+          </div>
+        </Section>
+
+        <Section title="Hoja de vida">
+          <div className="max-w-md">
+            <Field label="Formato de hoja de vida" error={errors.resume_format?.message}>
+              <select {...register('resume_format')} className="input">
+                <option value="">— Sin indicar —</option>
+                <option value="pdf">PDF</option>
+                <option value="word">Word</option>
+                <option value="physical">Físico</option>
               </select>
             </Field>
           </div>

@@ -86,6 +86,7 @@ class EmployeeDetailSerializer(TenantSerializer):
             'birth_city', 'birth_country',
             'residence_city', 'residence_country',
             'marital_status', 'blood_type', 'socioeconomic_stratum',
+            'weight', 'height', 'resume_format',
             # Academic
             'profession', 'education_level',
             # ID doc
@@ -122,6 +123,7 @@ class EmployeeWriteSerializer(TenantSerializer):
             'birth_city', 'birth_country',
             'residence_city', 'residence_country',
             'marital_status', 'blood_type', 'socioeconomic_stratum',
+            'weight', 'height', 'resume_format',
             'profession', 'education_level',
             'document_expedition_date', 'document_expedition_city',
             'uniform_pants', 'uniform_shirt', 'uniform_shoes',
@@ -138,6 +140,9 @@ class EmployeeWriteSerializer(TenantSerializer):
         # CharField en modelo sin null=True: el cliente no debe enviar null (usa '').
         if 'socioeconomic_stratum' in attrs and attrs['socioeconomic_stratum'] is None:
             attrs['socioeconomic_stratum'] = ''
+        for key in ('weight', 'height', 'resume_format'):
+            if key in attrs and attrs[key] is None:
+                attrs[key] = ''
 
         tenant = self.context['request'].tenant
         doc_type = attrs.get('document_type', getattr(self.instance, 'document_type', None))
@@ -195,12 +200,19 @@ class ContractSerializer(TenantSerializer):
             # Status
             'contract_status', 'settlement_status', 'social_security_status',
             'is_pensioner', 'pension_risk', 'is_current',
+            'legacy_contract_id',
             # Document
             'document', 'notes',
             # Meta
             'tenant', 'created_at', 'updated_at',
         ]
         read_only_fields = TenantSerializer.Meta.read_only_fields + ['employee']
+
+    def validate(self, attrs):
+        for key in ('payment_method', 'is_pensioner', 'legacy_contract_id'):
+            if key in attrs and attrs[key] is None:
+                attrs[key] = ''
+        return attrs
 
     def create(self, validated_data):
         validated_data['tenant'] = self.context['request'].tenant

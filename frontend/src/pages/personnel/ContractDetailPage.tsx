@@ -105,7 +105,32 @@ export default function ContractDetailPage() {
             <InfoRow label="Tipo salario" value={contract.salary_type} />
             <InfoRow label="Modalidad pago" value={contract.salary_mode} />
             <InfoRow label="Subsidio transporte" value={contract.transport_allowance} />
-            <InfoRow label="Método de pago" value={contract.payment_method} />
+            <InfoRow
+              label="Forma de pago"
+              value={
+                contract.payment_method === 'transfer'
+                  ? 'Transferencia'
+                  : contract.payment_method === 'check'
+                    ? 'Cheque'
+                    : contract.payment_method === 'cash'
+                      ? 'Efectivo'
+                      : contract.payment_method || undefined
+              }
+            />
+            <InfoRow label="Dependientes" value={contract.dependents != null ? String(contract.dependents) : undefined} />
+            <InfoRow label="ID contrato anterior" value={contract.legacy_contract_id} />
+            <InfoRow
+              label="Deducible vivienda"
+              value={contract.housing_deductible != null ? `$${Number(contract.housing_deductible).toLocaleString('es-CO')}` : undefined}
+            />
+            <InfoRow
+              label="Salud retefuente"
+              value={contract.health_deductible != null ? `$${Number(contract.health_deductible).toLocaleString('es-CO')}` : undefined}
+            />
+            <InfoRow
+              label="Deducible medicina"
+              value={contract.medical_deductible != null ? `$${Number(contract.medical_deductible).toLocaleString('es-CO')}` : undefined}
+            />
           </dl>
         </Card>
 
@@ -128,7 +153,18 @@ export default function ContractDetailPage() {
             <InfoRow label="Fondo cesantías" value={contract.severance_fund != null ? String(contract.severance_fund) : null} />
             <InfoRow label="Tipo cotizante" value={contract.contributor_type} />
             <InfoRow label="Estado SS" value={contract.social_security_status} />
-            <InfoRow label="Es pensionado" value={contract.is_pensioner} />
+            <InfoRow
+              label="Pensionado"
+              value={
+                contract.is_pensioner === 'not_applicable'
+                  ? 'No aplica'
+                  : contract.is_pensioner === 'active'
+                    ? 'Pensionado activo'
+                    : contract.is_pensioner === 'substitution'
+                      ? 'Sustitución'
+                      : contract.is_pensioner || undefined
+              }
+            />
           </dl>
         </Card>
 

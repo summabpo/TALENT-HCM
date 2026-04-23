@@ -48,6 +48,17 @@ class Employee(TimestampedTenantModel):
     Central employee record aligned with Nomiweb's contratosemp.
     Linked across systems via global_employee_id.
     """
+
+    class Gender(models.TextChoices):
+        MALE = 'M', _('Masculino')
+        FEMALE = 'F', _('Femenino')
+        OTHER = 'O', _('Otro')
+
+    class ResumeFormat(models.TextChoices):
+        PDF = 'pdf', _('PDF')
+        WORD = 'word', _('Word')
+        PHYSICAL = 'physical', _('Físico')
+
     global_employee_id = models.UUIDField(unique=True, default=uuid.uuid4, editable=False)
 
     # Identity — mirrors contratosemp
@@ -66,7 +77,12 @@ class Employee(TimestampedTenantModel):
     address = models.CharField(max_length=100, blank=True)                              # direccionempleado
 
     # Personal data
-    gender = models.CharField(max_length=10, blank=True)                                # sexo
+    gender = models.CharField(max_length=10, choices=Gender.choices, blank=True)         # sexo
+    weight = models.CharField(_('weight (kg)'), max_length=10, blank=True)               # peso
+    height = models.CharField(_('height (cm)'), max_length=10, blank=True)             # estatura
+    resume_format = models.CharField(                                                    # formato hoja de vida
+        _('resume format'), max_length=25, choices=ResumeFormat.choices, blank=True,
+    )
     date_of_birth = models.DateField(null=True, blank=True)                             # fechanac
     birth_city = models.ForeignKey(                                                     # ciudadnacimiento
         City, on_delete=models.PROTECT, null=True, blank=True,
@@ -113,7 +129,7 @@ class Employee(TimestampedTenantModel):
     emergency_contact_relationship = models.CharField(max_length=20, blank=True)
 
     # Photo
-    photo = models.ImageField(upload_to='personnel/photos/', blank=True)
+    photo = models.ImageField(upload_to='employees/photos/', blank=True, null=True)
 
     # Organizational (Talent-native)
     department = models.ForeignKey(
@@ -157,6 +173,17 @@ class Employee(TimestampedTenantModel):
 
 class Contract(TimestampedTenantModel):
     """Mirrors Nomiweb's contratos table for future API sync."""
+
+    class PaymentMethod(models.TextChoices):
+        TRANSFER = 'transfer', _('Transferencia')
+        CHECK = 'check', _('Cheque')
+        CASH = 'cash', _('Efectivo')
+
+    class PensionerStatus(models.TextChoices):
+        NOT_APPLICABLE = 'not_applicable', _('No aplica')
+        ACTIVE = 'active', _('Pensionado activo')
+        SUBSTITUTION = 'substitution', _('Sustitución')
+
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='contracts')
 
     # Contract basics
@@ -182,7 +209,9 @@ class Contract(TimestampedTenantModel):
         ('mixed', _('Mixto')),
     ], default='fixed')
     transport_allowance = models.BooleanField(default=False)                             # auxiliotransporte
-    payment_method = models.CharField(max_length=25, blank=True)                        # formapago
+    payment_method = models.CharField(                                                    # formapago
+        max_length=25, choices=PaymentMethod.choices, blank=True,
+    )
     work_schedule = models.CharField(max_length=25, blank=True)                         # jornada
 
     # Banking
@@ -247,9 +276,15 @@ class Contract(TimestampedTenantModel):
     contract_status = models.SmallIntegerField(default=1)                               # estadocontrato 1=active 2=terminated
     settlement_status = models.CharField(max_length=25, blank=True)                     # estadoliquidacion
     social_security_status = models.CharField(max_length=25, blank=True)                # estadosegsocial
-    is_pensioner = models.CharField(max_length=25, blank=True)                          # pensionado
+    is_pensioner = models.CharField(                                                     # pensionado
+        max_length=25, choices=PensionerStatus.choices, blank=True,
+    )
     pension_risk = models.BooleanField(default=False)                                   # riesgo_pension
     is_current = models.BooleanField(default=True)
+
+    legacy_contract_id = models.CharField(                                              # id contrato sistema anterior
+        _('legacy contract id'), max_length=25, blank=True,
+    )
 
     # Document
     document = models.FileField(upload_to='personnel/contracts/', blank=True)
