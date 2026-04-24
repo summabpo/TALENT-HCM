@@ -118,28 +118,33 @@ class OrganizationalLevelSerializer(TenantSerializer):
 class PositionSerializer(TenantSerializer):
     class Meta(TenantSerializer.Meta):
         model = Position
-        fields = ['id', 'name', 'level', 'is_active', 'tenant', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'level', 'is_active', 'tenant', 'created_at', 'updated_at', 'nomiweb_cargo_id']
+        read_only_fields = TenantSerializer.Meta.read_only_fields + ['nomiweb_cargo_id']
 
 
 class CostCenterSerializer(TenantSerializer):
     class Meta(TenantSerializer.Meta):
         model = CostCenter
-        fields = ['id', 'name', 'accounting_group', 'suffix', 'is_active', 'tenant', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'accounting_group', 'suffix', 'is_active', 'tenant', 'created_at', 'updated_at', 'nomiweb_costo_id']
+        read_only_fields = TenantSerializer.Meta.read_only_fields + ['nomiweb_costo_id']
 
 
 class SubCostCenterSerializer(TenantSerializer):
     class Meta(TenantSerializer.Meta):
         model = SubCostCenter
-        fields = ['id', 'name', 'cost_center', 'suffix', 'is_active', 'tenant', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'cost_center', 'suffix', 'is_active', 'tenant', 'created_at', 'updated_at', 'nomiweb_subcosto_id']
+        read_only_fields = TenantSerializer.Meta.read_only_fields + ['nomiweb_subcosto_id']
 
 
 class WorkLocationSerializer(TenantSerializer):
     class Meta(TenantSerializer.Meta):
         model = WorkLocation
-        fields = ['id', 'name', 'compensation_fund', 'is_active', 'tenant', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'compensation_fund', 'is_active', 'tenant', 'created_at', 'updated_at', 'nomiweb_sede_id']
+        read_only_fields = TenantSerializer.Meta.read_only_fields + ['nomiweb_sede_id']
 
 
 class WorkCenterSerializer(TenantSerializer):
     class Meta(TenantSerializer.Meta):
         model = WorkCenter
-        fields = ['id', 'name', 'arl_rate', 'economic_activity', 'operator_code', 'is_active', 'tenant', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'arl_rate', 'economic_activity', 'operator_code', 'is_active', 'tenant', 'created_at', 'updated_at', 'nomiweb_ct_id']
+        read_only_fields = TenantSerializer.Meta.read_only_fields + ['nomiweb_ct_id']

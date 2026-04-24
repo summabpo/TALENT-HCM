@@ -72,8 +72,9 @@ class TenantAdminSerializer(serializers.ModelSerializer):
             'clear_logo', 'clear_signature',
             'certification_title', 'website', 'language',
             'modules', 'module_count',
+            'nomiweb_empresa_id',
         ]
-        read_only_fields = ['id', 'created_at']
+        read_only_fields = ['id', 'created_at', 'nomiweb_empresa_id']
 
     def validate_nit(self, value):
         v = (value or '').strip()

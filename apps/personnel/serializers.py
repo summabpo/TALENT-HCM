@@ -87,7 +87,9 @@ class EmployeeListSerializer(TenantSerializer):
             'email', 'status', 'is_active',
             'department', 'department_name',
             'created_at',
+            'nomiweb_empleado_id',
         ]
+        read_only_fields = TenantSerializer.Meta.read_only_fields + ['nomiweb_empleado_id']
 
 
 class EmployeeDetailSerializer(TenantSerializer):
@@ -136,7 +138,9 @@ class EmployeeDetailSerializer(TenantSerializer):
             'status', 'is_active',
             # Meta
             'tenant', 'created_at', 'updated_at',
+            'nomiweb_empleado_id',
         ]
+        read_only_fields = TenantSerializer.Meta.read_only_fields + ['nomiweb_empleado_id']
 
 
 class EmployeeWriteSerializer(TenantSerializer):
@@ -269,8 +273,9 @@ class ContractSerializer(TenantSerializer):
             'document', 'notes',
             # Meta
             'tenant', 'created_at', 'updated_at',
+            'nomiweb_contrato_id',
         ]
-        read_only_fields = TenantSerializer.Meta.read_only_fields + ['employee']
+        read_only_fields = TenantSerializer.Meta.read_only_fields + ['employee', 'nomiweb_contrato_id']
         extra_kwargs = {
             # Aceptar null en JSON; convertir a '' en validate() (el modelo no usa null=True en estos textos).
             'payment_method': {'allow_null': True},

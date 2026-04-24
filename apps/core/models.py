@@ -75,6 +75,14 @@ class Tenant(models.Model):
     website = models.URLField(_('website'), blank=True, max_length=500)
     language = models.CharField(_('language'), max_length=2, choices=Language.choices, default=Language.ES)
 
+    nomiweb_empresa_id = models.IntegerField(
+        null=True,
+        blank=True,
+        db_index=True,
+        unique=True,
+        help_text='ID del registro equivalente en Nomiweb (empresa.idempresa)',
+    )
+
     class Meta:
         db_table = 'core_tenant'
         verbose_name = _('tenant')

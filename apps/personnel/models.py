@@ -159,6 +159,14 @@ class Employee(TimestampedTenantModel):
     ], default='active')
     is_active = models.BooleanField(default=True)
 
+    nomiweb_empleado_id = models.IntegerField(
+        null=True,
+        blank=True,
+        db_index=True,
+        unique=True,
+        help_text='ID del registro equivalente en Nomiweb (contratosemp.idempleado)',
+    )
+
     objects = TenantManager()
 
     class Meta:
@@ -301,6 +309,14 @@ class Contract(TimestampedTenantModel):
         validators=[validate_document_file],
     )
     notes = models.TextField(blank=True)
+
+    nomiweb_contrato_id = models.IntegerField(
+        null=True,
+        blank=True,
+        db_index=True,
+        unique=True,
+        help_text='ID del registro equivalente en Nomiweb (contratos.idcontrato)',
+    )
 
     objects = TenantManager()
 

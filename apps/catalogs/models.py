@@ -285,11 +285,18 @@ class Position(TimestampedTenantModel):
     name = models.CharField(max_length=100)
     level = models.ForeignKey(OrganizationalLevel, on_delete=models.PROTECT)
     is_active = models.BooleanField(default=True)
+    nomiweb_cargo_id = models.IntegerField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text='ID del registro equivalente en Nomiweb (cargos.idcargo)',
+    )
     objects = TenantManager()
 
     class Meta:
         db_table = 'catalog_position'
         ordering = ['name']
+        unique_together = [['tenant', 'nomiweb_cargo_id']]
 
     def __str__(self):
         return self.name
@@ -301,11 +308,18 @@ class CostCenter(TimestampedTenantModel):
     accounting_group = models.CharField(max_length=4, blank=True)
     suffix = models.CharField(max_length=2, blank=True)
     is_active = models.BooleanField(default=True)
+    nomiweb_costo_id = models.IntegerField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text='ID del registro equivalente en Nomiweb (costos.idcosto)',
+    )
     objects = TenantManager()
 
     class Meta:
         db_table = 'catalog_cost_center'
         ordering = ['name']
+        unique_together = [['tenant', 'nomiweb_costo_id']]
 
     def __str__(self):
         return self.name
@@ -317,11 +331,18 @@ class SubCostCenter(TimestampedTenantModel):
     cost_center = models.ForeignKey(CostCenter, on_delete=models.CASCADE)
     suffix = models.CharField(max_length=2, blank=True)
     is_active = models.BooleanField(default=True)
+    nomiweb_subcosto_id = models.IntegerField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text='ID del registro equivalente en Nomiweb (subcostos.idsubcosto)',
+    )
     objects = TenantManager()
 
     class Meta:
         db_table = 'catalog_sub_cost_center'
         ordering = ['cost_center__name', 'name']
+        unique_together = [['tenant', 'nomiweb_subcosto_id']]
 
     def __str__(self):
         return f'{self.cost_center.name} > {self.name}'
@@ -338,11 +359,18 @@ class WorkLocation(TimestampedTenantModel):
         limit_choices_to={'entity_type': 'CCF'},
     )
     is_active = models.BooleanField(default=True)
+    nomiweb_sede_id = models.IntegerField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text='ID del registro equivalente en Nomiweb (sedes.idsede)',
+    )
     objects = TenantManager()
 
     class Meta:
         db_table = 'catalog_work_location'
         ordering = ['name']
+        unique_together = [['tenant', 'nomiweb_sede_id']]
 
     def __str__(self):
         return self.name
@@ -355,11 +383,18 @@ class WorkCenter(TimestampedTenantModel):
     economic_activity = models.CharField(max_length=7, blank=True)
     operator_code = models.CharField(max_length=7, blank=True)
     is_active = models.BooleanField(default=True)
+    nomiweb_ct_id = models.IntegerField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text='ID del registro equivalente en Nomiweb (centrotrabajo.centrotrabajo)',
+    )
     objects = TenantManager()
 
     class Meta:
         db_table = 'catalog_work_center'
         ordering = ['name']
+        unique_together = [['tenant', 'nomiweb_ct_id']]
 
     def __str__(self):
         return self.name
