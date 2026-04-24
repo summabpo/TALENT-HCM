@@ -81,12 +81,12 @@ setup('autenticar como admin de tenant', async ({ page }) => {
 })
 
 setup('autenticar como superadmin de plataforma', async ({ page }) => {
-  const reached = await programmaticLogin(page, 'superadmin@talentsumma.co', 'Super1234!', 'demo')
+  const reached = await programmaticLogin(page, 'superadmin@summabpo.com', 'Summa2026$', 'demo')
     .then(() => true)
     .catch(() => false)
 
   if (!reached) {
-    console.warn('[SETUP] superadmin@talentsumma.co no existe — usando admin@demo.co como fallback')
+    console.warn('[SETUP] superadmin@summabpo.com no existe — usando admin@demo.co como fallback')
     await programmaticLogin(page, 'admin@demo.co', 'admin1234', 'demo')
   }
 

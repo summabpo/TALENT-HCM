@@ -38,15 +38,37 @@ test('7 — crear nueva empresa con datos válidos', async ({ page }) => {
   await slugInput.clear()
   await slugInput.fill(slug)
 
-  await page.getByRole('button', { name: /guardar|crear/i }).click()
+  await page.locator('input[name="nit"]').fill(`900${String(Date.now()).slice(-6)}-1`)
+  await page.locator('input[name="legal_representative"]').fill('Representante legal E2E')
+  await page.locator('input[name="email"]').fill(`e2e-${slug}@test.example.com`)
+  await page.locator('input[name="phone"]').fill('+57 300 1234567')
+  await page.locator('input[name="address"]').fill('Calle E2E 123, Bogotá')
 
-  await expect(page).toHaveURL('/admin/tenants', { timeout: 10_000 })
+  // País y ciudad (SelectSearchable / react-select; no usar getByRole('option') global: choca con <select> nativo)
+  await page.locator('#tenant-country').getByRole('combobox').click()
+  const countryMenu = page.locator('.summa-select__menu')
+  await expect(countryMenu).toBeVisible()
+  // Puede haber más de una fila homónima en catálogo (p. ej. COLOMBIA / Colombia)
+  await countryMenu.getByRole('option').filter({ hasText: /^Colombia$/i }).first().click()
+
+  const cityCombo = page.locator('#tenant-city').getByRole('combobox')
+  await expect(cityCombo).toBeEnabled({ timeout: 20_000 })
+  await cityCombo.click()
+  const cityMenu = page.locator('.summa-select__menu')
+  // El menú puede abrirse antes de que react-query pinte las opciones
+  await expect(cityMenu.getByRole('option').first()).toBeVisible({ timeout: 20_000 })
+  // Cualquier ciudad del país basta; el texto mostrado puede variar (p. ej. "Bogotá D.C." vs acentos en a11y)
+  await cityMenu.getByRole('option').first().click()
+
+  await page.getByRole('button', { name: 'Crear empresa' }).click()
+
+  await expect(page).toHaveURL('/admin/tenants', { timeout: 30_000 })
   await expect(page.getByText(nombre)).toBeVisible()
 })
 
 test('8 — editar empresa existente', async ({ page }) => {
-  // DataTable renders rows; find the Demo Company row
-  const row = page.getByRole('row').filter({ hasText: 'Demo Company' })
+  // DataTable renders rows; find the Demo Company row (first match avoids strict mode if hay duplicados)
+  const row = page.getByRole('row').filter({ hasText: 'Demo Company' }).first()
 
   // "Editar" is a <button> (not link) in the actions column
   await row.getByRole('button', { name: 'Editar' }).click()
@@ -68,7 +90,7 @@ test('8 — editar empresa existente', async ({ page }) => {
 
 test('9 — activar y desactivar módulos de una empresa', async ({ page }) => {
   // "Módulos" is a <button> in the actions column
-  const row = page.getByRole('row').filter({ hasText: 'Demo Company' })
+  const row = page.getByRole('row').filter({ hasText: 'Demo Company' }).first()
   await row.getByRole('button', { name: 'Módulos' }).click()
 
   await expect(page).toHaveURL(/\/admin\/tenants\/.+\/modules$/)

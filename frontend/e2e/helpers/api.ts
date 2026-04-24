@@ -24,7 +24,7 @@ async function getAdminToken(request: APIRequestContext): Promise<string> {
 
 async function getSuperAdminToken(request: APIRequestContext): Promise<string> {
   const res = await request.post(`${API_BASE}/auth/login/`, {
-    data: { email: 'superadmin@talentsumma.co', password: 'Super1234!' },
+    data: { email: 'superadmin@summabpo.com', password: 'Summa2026$' },
   })
   const body = await res.json()
   return body.access as string
