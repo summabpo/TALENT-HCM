@@ -2,6 +2,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from apps.core.models import TimestampedTenantModel
 from apps.core.managers import TenantManager
+from apps.core.validators import validate_document_file
 
 
 class HiringProcess(TimestampedTenantModel):
@@ -45,7 +46,10 @@ class Candidate(TimestampedTenantModel):
     full_name = models.CharField(max_length=255)
     email = models.EmailField()
     phone = models.CharField(max_length=30, blank=True)
-    resume = models.FileField(upload_to='hiring/resumes/', blank=True)
+    resume = models.FileField(
+        upload_to='hiring/resumes/', blank=True,
+        validators=[validate_document_file],
+    )
     status = models.CharField(max_length=30, choices=[
         ('applied', _('Applied')),
         ('screening', _('Screening')),

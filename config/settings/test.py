@@ -7,10 +7,11 @@ DATABASES = {
     }
 }
 
-# Disable Redis for tests
+# Disable Redis for tests; DummyCache also prevents throttle counts from
+# accumulating across test cases (throttle uses the default cache).
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
     }
 }
 

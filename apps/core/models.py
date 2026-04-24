@@ -5,6 +5,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from .managers import UserManager
+from .validators import validate_image_file
 
 
 def tenant_logo_upload_to(instance, filename):
@@ -62,9 +63,13 @@ class Tenant(models.Model):
     )
     email = models.EmailField(_('company email'), blank=True, default='')
     nit = models.CharField('NIT', max_length=20, blank=True, default='')
-    logo = models.FileField(_('logo'), upload_to=tenant_logo_upload_to, blank=True, null=True, max_length=500)
+    logo = models.FileField(
+        _('logo'), upload_to=tenant_logo_upload_to, blank=True, null=True, max_length=500,
+        validators=[validate_image_file],
+    )
     signature = models.FileField(
         _('certification signature'), upload_to=tenant_signature_upload_to, blank=True, null=True, max_length=500,
+        validators=[validate_image_file],
     )
     certification_title = models.CharField(_('certification title'), max_length=100, blank=True, default='')
     website = models.URLField(_('website'), blank=True, max_length=500)

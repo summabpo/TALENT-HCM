@@ -3,6 +3,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from apps.core.models import TimestampedTenantModel
 from apps.core.managers import TenantManager
+from apps.core.validators import validate_document_file, validate_image_file
 from apps.catalogs.models import (
     Country, City, DocumentType, SocialSecurityEntity,
     Bank, ContractType, PayrollType, SalaryType, ContributorType,
@@ -129,10 +130,14 @@ class Employee(TimestampedTenantModel):
     emergency_contact_relationship = models.CharField(max_length=20, blank=True)
 
     # Photo
-    photo = models.ImageField(upload_to='employees/photos/', blank=True, null=True)
+    photo = models.ImageField(
+        upload_to='employees/photos/', blank=True, null=True,
+        validators=[validate_image_file],
+    )
     # CV (single PDF, Talent UI); resume_format may mirror Nomiweb as pdf|word|physical
     resume_file = models.FileField(
         _('resume file (PDF)'), upload_to='employees/resumes/', blank=True, null=True,
+        validators=[validate_document_file],
     )
 
     # Organizational (Talent-native)
@@ -291,7 +296,10 @@ class Contract(TimestampedTenantModel):
     )
 
     # Document
-    document = models.FileField(upload_to='personnel/contracts/', blank=True)
+    document = models.FileField(
+        upload_to='personnel/contracts/', blank=True,
+        validators=[validate_document_file],
+    )
     notes = models.TextField(blank=True)
 
     objects = TenantManager()
@@ -328,7 +336,10 @@ class EmployeeDocument(TimestampedTenantModel):
         ('other', _('Otro')),
     ])
     title = models.CharField(max_length=255)
-    file = models.FileField(upload_to='personnel/documents/')
+    file = models.FileField(
+        upload_to='personnel/documents/',
+        validators=[validate_document_file],
+    )
     expiration_date = models.DateField(null=True, blank=True)
     notes = models.TextField(blank=True)
 

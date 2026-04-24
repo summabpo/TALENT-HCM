@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -15,12 +17,16 @@ from apps.core.serializers import (
     issue_platform_admin_tokens,
     issue_tokens,
 )
+from apps.core.throttling import LoginRateThrottle
+
+security_logger = logging.getLogger('security')
 
 
 class LoginView(APIView):
     """POST /api/v1/auth/login/"""
     permission_classes = [AllowAny]
     authentication_classes = []
+    throttle_classes = [LoginRateThrottle]
 
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
@@ -31,6 +37,9 @@ class LoginView(APIView):
                     {'tenant_required': True, 'tenants': errors['tenants']},
                     status=status.HTTP_200_OK,
                 )
+            email = request.data.get('email', 'unknown')
+            ip = request.META.get('REMOTE_ADDR', 'unknown')
+            security_logger.warning('Login fallido para %s desde %s', email, ip)
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
