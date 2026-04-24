@@ -5,8 +5,8 @@ export const SUPERADMIN_STATE = 'e2e/.auth/superadmin.json'
 
 export const ADMIN_EMAIL = 'admin@demo.co'
 export const ADMIN_PASSWORD = 'admin1234'
-export const SUPERADMIN_EMAIL = 'superadmin@talentsumma.co'
-export const SUPERADMIN_PASSWORD = 'Super1234!'
+export const SUPERADMIN_EMAIL = 'superadmin@summabpo.com'
+export const SUPERADMIN_PASSWORD = 'Summa2026$'
 
 /** Login desde la UI y opcionalmente seleccionar empresa. */
 export async function loginAsAdmin(page: Page) {

@@ -16,7 +16,7 @@ Tests de extremo a extremo con [Playwright](https://playwright.dev/). Cubren los
 | Usuario | Contraseña | Rol |
 |---|---|---|
 | `admin@demo.co` | `admin1234` | Admin de tenant (Demo Company) |
-| `superadmin@talentsumma.co` | `Super1234!` | Superusuario de plataforma |
+| `superadmin@summabpo.com` | `Summa2026$` | Superusuario de plataforma |
 
 ---
 
