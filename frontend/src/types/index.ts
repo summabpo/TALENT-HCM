@@ -34,8 +34,18 @@ export interface TenantArlNested {
   entity_type: string
 }
 
+export interface TenantBankNested {
+  id: number
+  name: string
+  code: string
+}
+
 /** Tipos de documento habituales (empresa) — el backend acepta string libre. */
 export type TenantDocumentType = 'NIT' | 'CC' | 'CE' | (string & {})
+
+export type TipoDocRepLegal = 'CC' | 'CE' | 'PA' | 'CD'
+export type TipoCuentaEmpresa = 'Ahorros' | 'Corriente'
+export type TipoPresentacionPlanillaPila = 'U' | 'S'
 
 /** Tenant CRUD (staff) — aligned with GET/PATCH /api/v1/tenants/ */
 export interface TenantAdmin {
@@ -61,6 +71,45 @@ export interface TenantAdmin {
   arl?: TenantArlNested | null
   modules?: TenantModuleConfig
   module_count?: number
+  /** NIT / identificación (detalle) */
+  dv?: string | null
+  tipo_persona?: 'N' | 'J' | null
+  naturaleza_juridica?: '1' | '2' | '3' | '4' | '5' | null
+  /** Representante legal (detalle) */
+  tipo_doc_rep_legal?: TipoDocRepLegal | null
+  numero_doc_rep_legal?: string | null
+  pnombre_rep_legal?: string | null
+  snombre_rep_legal?: string | null
+  papellido_rep_legal?: string | null
+  sapellido_rep_legal?: string | null
+  /** Contactos por área */
+  contacto_nomina?: string | null
+  email_nomina?: string | null
+  contacto_rrhh?: string | null
+  email_rrhh?: string | null
+  contacto_contabilidad?: string | null
+  email_contabilidad?: string | null
+  /** Certificaciones (adicional) */
+  cargo_certificaciones?: string | null
+  firma_certificaciones?: string | null
+  /** Banco empresa */
+  banco_empresa?: TenantBankNested | null
+  num_cuenta_empresa?: string | null
+  tipo_cuenta_empresa?: TipoCuentaEmpresa | null
+  /** PILA */
+  clase_aportante?: string | null
+  tipo_aportante?: string | null
+  empresa_exonerada?: boolean
+  realizar_parafiscales?: boolean
+  vst_ccf?: boolean
+  vst_sena_icbf?: boolean
+  ige100?: boolean
+  sln_tarifa_pension?: string | number | null
+  tipo_presentacion_planilla?: TipoPresentacionPlanillaPila | null
+  codigo_sucursal?: string | null
+  nombre_sucursal?: string | null
+  /** Solo lectura — bridge Nomiweb */
+  nomiweb_empresa_id?: number | null
 }
 
 /** Module flags for PATCH …/tenants/{id}/modules/ (matches Django TenantModules) */

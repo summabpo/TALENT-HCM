@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useParams, useNavigate, Navigate } from 'react-router-dom'
 import { useForm, useWatch, Controller } from 'react-hook-form'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { catalogsApi } from '@/api/catalogs'
 import { tenantsApi } from '@/api/tenants'
 import { useAuth } from '@/contexts/AuthContext'
 import Breadcrumb from '@/components/ui/Breadcrumb'
@@ -29,6 +30,23 @@ const DOC_TYPES = [
   { value: 'CE', label: 'Cédula de extranjería' },
 ] as const
 
+const REP_LEGAL_DOC_TYPES = [
+  { value: 'CC', label: 'CC' },
+  { value: 'CE', label: 'CE' },
+  { value: 'PA', label: 'PA' },
+  { value: 'CD', label: 'CD' },
+] as const
+
+const ACCOUNT_TYPES = [
+  { value: 'Ahorros', label: 'Ahorros' },
+  { value: 'Corriente', label: 'Corriente' },
+] as const
+
+const TIPO_PLANILLA = [
+  { value: 'U', label: 'Única' },
+  { value: 'S', label: 'Sucursal' },
+] as const
+
 type FormValues = {
   name: string
   slug: string
@@ -46,6 +64,32 @@ type FormValues = {
   certification_title: string
   website: string
   language: string
+  tipo_doc_rep_legal: string
+  numero_doc_rep_legal: string
+  pnombre_rep_legal: string
+  snombre_rep_legal: string
+  papellido_rep_legal: string
+  sapellido_rep_legal: string
+  contacto_nomina: string
+  email_nomina: string
+  contacto_rrhh: string
+  email_rrhh: string
+  contacto_contabilidad: string
+  email_contabilidad: string
+  banco_empresa_id: string
+  num_cuenta_empresa: string
+  tipo_cuenta_empresa: string
+  clase_aportante: string
+  tipo_aportante: string
+  empresa_exonerada: boolean
+  realizar_parafiscales: boolean
+  vst_ccf: boolean
+  vst_sena_icbf: boolean
+  ige100: boolean
+  sln_tarifa_pension: string
+  tipo_presentacion_planilla: string
+  codigo_sucursal: string
+  nombre_sucursal: string
 }
 
 const DEFAULT_MODULES: TenantModuleConfig = {
@@ -139,6 +183,15 @@ export default function TenantFormPage() {
     queryFn: () => tenantsApi.getARLs(),
   })
 
+  const {
+    data: banks = [],
+    isLoading: banksLoading,
+    isError: banksError,
+  } = useQuery({
+    queryKey: ['catalog', 'banks'],
+    queryFn: () => catalogsApi.banks(),
+  })
+
   const { register, handleSubmit, reset, control, setValue, formState: { errors, isSubmitting } } = useForm<FormValues>({
     defaultValues: {
       is_active: true,
@@ -157,6 +210,32 @@ export default function TenantFormPage() {
       certification_title: '',
       website: '',
       language: 'es',
+      tipo_doc_rep_legal: '',
+      numero_doc_rep_legal: '',
+      pnombre_rep_legal: '',
+      snombre_rep_legal: '',
+      papellido_rep_legal: '',
+      sapellido_rep_legal: '',
+      contacto_nomina: '',
+      email_nomina: '',
+      contacto_rrhh: '',
+      email_rrhh: '',
+      contacto_contabilidad: '',
+      email_contabilidad: '',
+      banco_empresa_id: '',
+      num_cuenta_empresa: '',
+      tipo_cuenta_empresa: '',
+      clase_aportante: '',
+      tipo_aportante: '',
+      empresa_exonerada: false,
+      realizar_parafiscales: true,
+      vst_ccf: true,
+      vst_sena_icbf: true,
+      ige100: false,
+      sln_tarifa_pension: '',
+      tipo_presentacion_planilla: '',
+      codigo_sucursal: '',
+      nombre_sucursal: '',
     },
   })
 
@@ -215,11 +294,28 @@ export default function TenantFormPage() {
     () => arls.map((a) => ({ value: String(a.id), label: a.name })),
     [arls],
   )
+  const bankOptions = useMemo<SearchableOption[]>(() => {
+    const fromApi = banks.map((b) => ({ value: String(b.id), label: b.name }))
+    if (tenant?.banco_empresa) {
+      const bid = String(tenant.banco_empresa.id)
+      if (!fromApi.some((o) => o.value === bid)) {
+        return [{ value: bid, label: tenant.banco_empresa.name }, ...fromApi]
+      }
+    }
+    return fromApi
+  }, [banks, tenant])
 
   useEffect(() => {
     if (!tenant) return
     const dt = (tenant.document_type || '').toUpperCase()
     const docType = ['NIT', 'CC', 'CE'].includes(dt) ? dt : 'NIT'
+    const tdoc = (tenant.tipo_doc_rep_legal || '').toUpperCase()
+    const repDoc = ['CC', 'CE', 'PA', 'CD'].includes(tdoc) ? tdoc : ''
+    const tcuenta = tenant.tipo_cuenta_empresa ?? ''
+    const cuentaOk = tcuenta === 'Ahorros' || tcuenta === 'Corriente' ? tcuenta : ''
+    const tplan = tenant.tipo_presentacion_planilla ?? ''
+    const planOk = tplan === 'U' || tplan === 'S' ? tplan : ''
+    const pen = tenant.sln_tarifa_pension
     reset({
       name: tenant.name,
       slug: tenant.slug,
@@ -237,6 +333,32 @@ export default function TenantFormPage() {
       certification_title: tenant.certification_title ?? '',
       website: tenant.website ?? '',
       language: tenant.language ?? 'es',
+      tipo_doc_rep_legal: repDoc,
+      numero_doc_rep_legal: tenant.numero_doc_rep_legal ?? '',
+      pnombre_rep_legal: tenant.pnombre_rep_legal ?? '',
+      snombre_rep_legal: tenant.snombre_rep_legal ?? '',
+      papellido_rep_legal: tenant.papellido_rep_legal ?? '',
+      sapellido_rep_legal: tenant.sapellido_rep_legal ?? '',
+      contacto_nomina: tenant.contacto_nomina ?? '',
+      email_nomina: tenant.email_nomina ?? '',
+      contacto_rrhh: tenant.contacto_rrhh ?? '',
+      email_rrhh: tenant.email_rrhh ?? '',
+      contacto_contabilidad: tenant.contacto_contabilidad ?? '',
+      email_contabilidad: tenant.email_contabilidad ?? '',
+      banco_empresa_id: tenant.banco_empresa ? String(tenant.banco_empresa.id) : '',
+      num_cuenta_empresa: tenant.num_cuenta_empresa ?? '',
+      tipo_cuenta_empresa: cuentaOk,
+      clase_aportante: tenant.clase_aportante ?? '',
+      tipo_aportante: tenant.tipo_aportante ?? '',
+      empresa_exonerada: tenant.empresa_exonerada ?? false,
+      realizar_parafiscales: tenant.realizar_parafiscales !== false,
+      vst_ccf: tenant.vst_ccf !== false,
+      vst_sena_icbf: tenant.vst_sena_icbf !== false,
+      ige100: tenant.ige100 === true,
+      sln_tarifa_pension: pen != null && pen !== '' ? String(pen) : '',
+      tipo_presentacion_planilla: planOk,
+      codigo_sucursal: tenant.codigo_sucursal ?? '',
+      nombre_sucursal: tenant.nombre_sucursal ?? '',
     })
     if (tenant.modules) setModules({ ...DEFAULT_MODULES, ...tenant.modules })
     setSlugManual(true)
@@ -262,6 +384,8 @@ export default function TenantFormPage() {
   const buildPayload = useCallback(
     (values: FormValues): Record<string, unknown> => {
       const slug = values.slug.trim().toLowerCase()
+      const penRaw = values.sln_tarifa_pension.trim().replace(',', '.')
+      const penNum = penRaw ? Number(penRaw) : NaN
       const body: Record<string, unknown> = {
         name: values.name.trim(),
         slug,
@@ -276,10 +400,36 @@ export default function TenantFormPage() {
         certification_title: values.certification_title.trim(),
         website: values.website.trim(),
         language: values.language,
+        tipo_doc_rep_legal: values.tipo_doc_rep_legal.trim() || null,
+        numero_doc_rep_legal: values.numero_doc_rep_legal.trim() || null,
+        pnombre_rep_legal: values.pnombre_rep_legal.trim() || null,
+        snombre_rep_legal: values.snombre_rep_legal.trim() || null,
+        papellido_rep_legal: values.papellido_rep_legal.trim() || null,
+        sapellido_rep_legal: values.sapellido_rep_legal.trim() || null,
+        contacto_nomina: values.contacto_nomina.trim() || null,
+        email_nomina: values.email_nomina.trim() || null,
+        contacto_rrhh: values.contacto_rrhh.trim() || null,
+        email_rrhh: values.email_rrhh.trim() || null,
+        contacto_contabilidad: values.contacto_contabilidad.trim() || null,
+        email_contabilidad: values.email_contabilidad.trim() || null,
+        num_cuenta_empresa: values.num_cuenta_empresa.trim() || null,
+        tipo_cuenta_empresa: values.tipo_cuenta_empresa.trim() || null,
+        clase_aportante: values.clase_aportante.trim() || null,
+        tipo_aportante: values.tipo_aportante.trim() || null,
+        empresa_exonerada: values.empresa_exonerada,
+        realizar_parafiscales: values.realizar_parafiscales,
+        vst_ccf: values.vst_ccf,
+        vst_sena_icbf: values.vst_sena_icbf,
+        ige100: values.ige100,
+        sln_tarifa_pension: penRaw && !Number.isNaN(penNum) ? penNum : null,
+        tipo_presentacion_planilla: values.tipo_presentacion_planilla.trim() || null,
+        codigo_sucursal: values.codigo_sucursal.trim() || null,
+        nombre_sucursal: values.nombre_sucursal.trim() || null,
       }
       body.arl = values.arl_id ? Number(values.arl_id) : null
       body.country = values.country_id ? Number(values.country_id) : null
       body.city = values.city_id ? Number(values.city_id) : null
+      body.banco_empresa = values.banco_empresa_id ? Number(values.banco_empresa_id) : null
       return body
     },
     [],
@@ -826,6 +976,219 @@ export default function TenantFormPage() {
             <div>
               <label className="block text-sm font-semibold text-summa-ink mb-1">Título en certificaciones</label>
               <input {...register('certification_title')} className="input" placeholder="GERENTE" />
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="6. Representante legal detalle"
+            subtitle="Documento y nombres del representante legal (opcional)"
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-summa-ink mb-1">Tipo documento</label>
+              <select {...register('tipo_doc_rep_legal')} className="input">
+                <option value="">— Sin especificar —</option>
+                {REP_LEGAL_DOC_TYPES.map((d) => (
+                  <option key={d.value} value={d.value}>
+                    {d.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-summa-ink mb-1">Número documento</label>
+              <input {...register('numero_doc_rep_legal')} className="input" placeholder="Número" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-summa-ink mb-1">Primer nombre</label>
+              <input {...register('pnombre_rep_legal')} className="input" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-summa-ink mb-1">Segundo nombre</label>
+              <input {...register('snombre_rep_legal')} className="input" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-summa-ink mb-1">Primer apellido</label>
+              <input {...register('papellido_rep_legal')} className="input" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-summa-ink mb-1">Segundo apellido</label>
+              <input {...register('sapellido_rep_legal')} className="input" />
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <CardHeader title="7. Contactos por área" subtitle="Personas y correos por función (opcional)" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-summa-ink mb-1">Contacto nómina</label>
+              <input {...register('contacto_nomina')} className="input" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-summa-ink mb-1">Email nómina</label>
+              <input type="email" {...register('email_nomina')} className="input" placeholder="nomina@empresa.com" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-summa-ink mb-1">Contacto RRHH</label>
+              <input {...register('contacto_rrhh')} className="input" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-summa-ink mb-1">Email RRHH</label>
+              <input type="email" {...register('email_rrhh')} className="input" placeholder="rrhh@empresa.com" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-summa-ink mb-1">Contacto contabilidad</label>
+              <input {...register('contacto_contabilidad')} className="input" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-summa-ink mb-1">Email contabilidad</label>
+              <input type="email" {...register('email_contabilidad')} className="input" placeholder="contabilidad@empresa.com" />
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <CardHeader title="8. Datos bancarios empresa" subtitle="Cuenta de la compañía para nómina (opcional)" />
+          {banksError && (
+            <p className="text-sm text-amber-800 mb-3">No se pudieron cargar los bancos. Reintentá recargar la página.</p>
+          )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-summa-ink mb-1" htmlFor="tenant-bank">Banco</label>
+              <Controller
+                name="banco_empresa_id"
+                control={control}
+                render={({ field }) => (
+                  <SelectSearchable
+                    inputId="tenant-bank"
+                    options={bankOptions}
+                    value={field.value ? bankOptions.find((o) => o.value === field.value) ?? null : null}
+                    onChange={(opt) => field.onChange(opt?.value ?? '')}
+                    isLoading={banksLoading}
+                    isDisabled={banksLoading}
+                    isClearable
+                    placeholder={banksLoading ? 'Cargando bancos…' : 'Buscar o seleccionar banco (opcional)…'}
+                    noOptionsMessage={() => (banksError ? 'Error al cargar' : 'Sin resultados')}
+                    loadingMessage={() => 'Cargando…'}
+                  />
+                )}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-summa-ink mb-1">Número de cuenta</label>
+              <input {...register('num_cuenta_empresa')} className="input font-mono" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-summa-ink mb-1">Tipo de cuenta</label>
+              <select {...register('tipo_cuenta_empresa')} className="input">
+                <option value="">— Sin especificar —</option>
+                {ACCOUNT_TYPES.map((a) => (
+                  <option key={a.value} value={a.value}>
+                    {a.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <CardHeader title="9. Configuración PILA" subtitle="Aportes y planilla (opcional)" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-summa-ink mb-1">Clase aportante</label>
+              <input {...register('clase_aportante')} className="input" placeholder="Ej. 01" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-summa-ink mb-1">Tipo aportante</label>
+              <input {...register('tipo_aportante')} className="input" />
+            </div>
+            <div className="flex items-end">
+              <label className="flex items-center gap-3 cursor-pointer pb-2">
+                <input
+                  type="checkbox"
+                  {...register('empresa_exonerada')}
+                  className="rounded border-summa-border"
+                  style={{ accentColor: '#d52680' }}
+                />
+                <span className="text-sm font-semibold text-summa-ink">Empresa exonerada</span>
+              </label>
+            </div>
+            <div className="flex items-end">
+              <label className="flex items-center gap-3 cursor-pointer pb-2">
+                <input
+                  type="checkbox"
+                  {...register('realizar_parafiscales')}
+                  className="rounded border-summa-border"
+                  style={{ accentColor: '#d52680' }}
+                />
+                <span className="text-sm font-semibold text-summa-ink">Realizar parafiscales</span>
+              </label>
+            </div>
+            <div className="flex items-end">
+              <label className="flex items-center gap-3 cursor-pointer pb-2">
+                <input
+                  type="checkbox"
+                  {...register('vst_ccf')}
+                  className="rounded border-summa-border"
+                  style={{ accentColor: '#d52680' }}
+                />
+                <span className="text-sm font-semibold text-summa-ink">Aporta CCF</span>
+              </label>
+            </div>
+            <div className="flex items-end">
+              <label className="flex items-center gap-3 cursor-pointer pb-2">
+                <input
+                  type="checkbox"
+                  {...register('vst_sena_icbf')}
+                  className="rounded border-summa-border"
+                  style={{ accentColor: '#d52680' }}
+                />
+                <span className="text-sm font-semibold text-summa-ink">Aporta SENA/ICBF</span>
+              </label>
+            </div>
+            <div className="flex items-end">
+              <label className="flex items-center gap-3 cursor-pointer pb-2">
+                <input
+                  type="checkbox"
+                  {...register('ige100')}
+                  className="rounded border-summa-border"
+                  style={{ accentColor: '#d52680' }}
+                />
+                <span className="text-sm font-semibold text-summa-ink">IGE 100%</span>
+              </label>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-summa-ink mb-1">Tarifa pensión</label>
+              <input
+                type="text"
+                inputMode="decimal"
+                {...register('sln_tarifa_pension')}
+                className="input font-mono"
+                placeholder="16.00"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-summa-ink mb-1">Tipo planilla</label>
+              <select {...register('tipo_presentacion_planilla')} className="input">
+                <option value="">— Sin especificar —</option>
+                {TIPO_PLANILLA.map((p) => (
+                  <option key={p.value} value={p.value}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-summa-ink mb-1">Código sucursal</label>
+              <input {...register('codigo_sucursal')} className="input font-mono" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-summa-ink mb-1">Nombre sucursal</label>
+              <input {...register('nombre_sucursal')} className="input" />
             </div>
           </div>
         </Card>
