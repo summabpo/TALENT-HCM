@@ -49,7 +49,27 @@ class Command(BaseCommand):
     def _seed_tenant(self):
         tenant, created = Tenant.objects.get_or_create(
             slug=DEMO_TENANT_SLUG,
-            defaults={'name': DEMO_TENANT_NAME, 'is_active': True},
+            defaults={
+                'name': DEMO_TENANT_NAME,
+                'is_active': True,
+                'dv': '3',
+                'tipo_persona': 'J',
+                'naturaleza_juridica': '4',
+                'tipo_doc_rep_legal': 'CC',
+                'numero_doc_rep_legal': '1234567890',
+                'pnombre_rep_legal': 'Carlos',
+                'papellido_rep_legal': 'Rodríguez',
+                'contacto_nomina': 'Ana López',
+                'email_nomina': 'nomina@demo.co',
+                'contacto_rrhh': 'Juan Pérez',
+                'email_rrhh': 'rrhh@demo.co',
+                'empresa_exonerada': False,
+                'realizar_parafiscales': True,
+                'vst_ccf': True,
+                'vst_sena_icbf': True,
+                'tipo_presentacion_planilla': 'U',
+                'sln_tarifa_pension': Decimal('16.00'),
+            },
         )
         if created:
             self.stdout.write('  Tenant: Demo Company created')

@@ -75,6 +75,142 @@ class Tenant(models.Model):
     website = models.URLField(_('website'), blank=True, max_length=500)
     language = models.CharField(_('language'), max_length=2, choices=Language.choices, default=Language.ES)
 
+    # ── NIT / Identificación ────────────────────────────────────────────────────
+    dv = models.CharField(
+        max_length=2, null=True, blank=True,
+        help_text='Dígito de verificación del NIT',
+    )
+    tipo_persona = models.CharField(
+        max_length=1, null=True, blank=True,
+        choices=[('N', 'Natural'), ('J', 'Jurídica')],
+        help_text='Tipo de persona (N=Natural, J=Jurídica)',
+    )
+    naturaleza_juridica = models.CharField(
+        max_length=2, null=True, blank=True,
+        choices=[
+            ('1', 'Sociedad Anónima'),
+            ('2', 'Sociedad Limitada'),
+            ('3', 'Empresa Unipersonal'),
+            ('4', 'SAS'),
+            ('5', 'Otra'),
+        ],
+        help_text='Naturaleza jurídica de la empresa',
+    )
+
+    # ── Representante legal (detalle) ───────────────────────────────────────────
+    tipo_doc_rep_legal = models.CharField(
+        max_length=4, null=True, blank=True,
+        choices=[('CC', 'Cédula'), ('CE', 'Cédula extranjería'), ('PA', 'Pasaporte'), ('CD', 'Carnet diplomático')],
+    )
+    numero_doc_rep_legal = models.CharField(max_length=20, null=True, blank=True)
+    pnombre_rep_legal = models.CharField(
+        max_length=60, null=True, blank=True,
+        help_text='Primer nombre del representante legal',
+    )
+    snombre_rep_legal = models.CharField(
+        max_length=60, null=True, blank=True,
+        help_text='Segundo nombre del representante legal',
+    )
+    papellido_rep_legal = models.CharField(
+        max_length=60, null=True, blank=True,
+        help_text='Primer apellido del representante legal',
+    )
+    sapellido_rep_legal = models.CharField(
+        max_length=60, null=True, blank=True,
+        help_text='Segundo apellido del representante legal',
+    )
+
+    # ── Contactos por área ──────────────────────────────────────────────────────
+    contacto_nomina = models.CharField(
+        max_length=150, null=True, blank=True,
+        help_text='Nombre del contacto de nómina',
+    )
+    email_nomina = models.EmailField(null=True, blank=True)
+    contacto_rrhh = models.CharField(
+        max_length=150, null=True, blank=True,
+        help_text='Nombre del contacto de RRHH',
+    )
+    email_rrhh = models.EmailField(null=True, blank=True)
+    contacto_contabilidad = models.CharField(
+        max_length=150, null=True, blank=True,
+        help_text='Nombre del contacto de contabilidad',
+    )
+    email_contabilidad = models.EmailField(null=True, blank=True)
+
+    # ── Certificaciones ─────────────────────────────────────────────────────────
+    cargo_certificaciones = models.CharField(
+        max_length=150, null=True, blank=True,
+        help_text='Cargo del firmante de certificaciones laborales',
+    )
+    firma_certificaciones = models.ImageField(
+        upload_to='tenants/firmas_cert/',
+        null=True, blank=True,
+        help_text='Firma digital para certificaciones laborales',
+    )
+
+    # ── Banco de la empresa ─────────────────────────────────────────────────────
+    banco_empresa = models.ForeignKey(
+        'catalogs.Bank',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='tenants_banco',
+        help_text='Banco donde la empresa tiene cuenta para pagos de nómina',
+    )
+    num_cuenta_empresa = models.CharField(
+        max_length=30, null=True, blank=True,
+        help_text='Número de cuenta bancaria de la empresa',
+    )
+    tipo_cuenta_empresa = models.CharField(
+        max_length=20, null=True, blank=True,
+        choices=[('Ahorros', 'Ahorros'), ('Corriente', 'Corriente')],
+    )
+
+    # ── PILA / Parafiscales ─────────────────────────────────────────────────────
+    clase_aportante = models.CharField(
+        max_length=5, null=True, blank=True,
+        help_text='Clase de aportante PILA (01=Empleador, etc.)',
+    )
+    tipo_aportante = models.CharField(
+        max_length=5, null=True, blank=True,
+        help_text='Tipo de aportante PILA',
+    )
+    empresa_exonerada = models.BooleanField(
+        default=False,
+        help_text='Si la empresa está exonerada de parafiscales (Ley 1607)',
+    )
+    realizar_parafiscales = models.BooleanField(
+        default=True,
+        help_text='Si la empresa liquida parafiscales en nómina',
+    )
+    vst_ccf = models.BooleanField(
+        default=True,
+        help_text='Aporta a Caja de Compensación Familiar',
+    )
+    vst_sena_icbf = models.BooleanField(
+        default=True,
+        help_text='Aporta a SENA e ICBF',
+    )
+    ige100 = models.BooleanField(
+        default=False,
+        help_text='Incapacidad general de enfermedad al 100%',
+    )
+    sln_tarifa_pension = models.DecimalField(
+        max_digits=5, decimal_places=2,
+        null=True, blank=True,
+        help_text='Tarifa de pensión (default 16.00%)',
+    )
+    tipo_presentacion_planilla = models.CharField(
+        max_length=1, null=True, blank=True,
+        choices=[('U', 'Única'), ('S', 'Sucursal')],
+        help_text='Tipo de presentación de planilla PILA',
+    )
+    codigo_sucursal = models.CharField(
+        max_length=10, null=True, blank=True,
+        help_text='Código de sucursal para planilla PILA tipo S',
+    )
+    nombre_sucursal = models.CharField(max_length=100, null=True, blank=True)
+
+    # ── Bridge Nomiweb (Etapa 1) ────────────────────────────────────────────────
     nomiweb_empresa_id = models.IntegerField(
         null=True,
         blank=True,

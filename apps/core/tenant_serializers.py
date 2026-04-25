@@ -2,7 +2,7 @@ import re
 
 from rest_framework import serializers
 
-from apps.catalogs.models import City, Country, SocialSecurityEntity
+from apps.catalogs.models import Bank, City, Country, SocialSecurityEntity
 
 from .models import Tenant, TenantModules
 
@@ -46,6 +46,12 @@ class ArlNestedSerializer(serializers.ModelSerializer):
         fields = ['id', 'code', 'nit', 'name', 'entity_type']
 
 
+class BankNestedSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Bank
+        fields = ['id', 'name', 'code']
+
+
 class TenantModulesAdminSerializer(serializers.ModelSerializer):
     class Meta:
         model = TenantModules
@@ -72,6 +78,27 @@ class TenantAdminSerializer(serializers.ModelSerializer):
             'clear_logo', 'clear_signature',
             'certification_title', 'website', 'language',
             'modules', 'module_count',
+            # NIT / Identificación
+            'dv', 'tipo_persona', 'naturaleza_juridica',
+            # Representante legal detalle
+            'tipo_doc_rep_legal', 'numero_doc_rep_legal',
+            'pnombre_rep_legal', 'snombre_rep_legal',
+            'papellido_rep_legal', 'sapellido_rep_legal',
+            # Contactos por área
+            'contacto_nomina', 'email_nomina',
+            'contacto_rrhh', 'email_rrhh',
+            'contacto_contabilidad', 'email_contabilidad',
+            # Certificaciones
+            'cargo_certificaciones', 'firma_certificaciones',
+            # Banco empresa
+            'banco_empresa', 'num_cuenta_empresa', 'tipo_cuenta_empresa',
+            # PILA
+            'clase_aportante', 'tipo_aportante',
+            'empresa_exonerada', 'realizar_parafiscales',
+            'vst_ccf', 'vst_sena_icbf', 'ige100',
+            'sln_tarifa_pension', 'tipo_presentacion_planilla',
+            'codigo_sucursal', 'nombre_sucursal',
+            # Bridge Nomiweb
             'nomiweb_empresa_id',
         ]
         read_only_fields = ['id', 'created_at', 'nomiweb_empresa_id']
@@ -117,6 +144,10 @@ class TenantAdminSerializer(serializers.ModelSerializer):
             data['arl'] = ArlNestedSerializer(instance.arl).data
         else:
             data['arl'] = None
+        if instance.banco_empresa_id:
+            data['banco_empresa'] = BankNestedSerializer(instance.banco_empresa).data
+        else:
+            data['banco_empresa'] = None
         if instance.logo:
             url = instance.logo.url
             data['logo'] = request.build_absolute_uri(url) if request else url
@@ -127,6 +158,11 @@ class TenantAdminSerializer(serializers.ModelSerializer):
             data['signature'] = request.build_absolute_uri(url) if request else url
         else:
             data['signature'] = None
+        if instance.firma_certificaciones:
+            url = instance.firma_certificaciones.url
+            data['firma_certificaciones'] = request.build_absolute_uri(url) if request else url
+        else:
+            data['firma_certificaciones'] = None
         try:
             data['modules'] = TenantModulesAdminSerializer(instance.modules).data
         except TenantModules.DoesNotExist:

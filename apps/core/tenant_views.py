@@ -36,7 +36,7 @@ class TenantAdminViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = (
-            Tenant.objects.select_related('modules', 'country', 'city', 'arl')
+            Tenant.objects.select_related('modules', 'country', 'city', 'arl', 'banco_empresa')
             .all()
             .order_by('name')
         )
