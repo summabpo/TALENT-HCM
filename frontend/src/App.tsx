@@ -40,6 +40,11 @@ import OKRDashboardPage from '@/pages/performance/OKRDashboardPage'
 import KPIListPage from '@/pages/performance/KPIListPage'
 import KPIDashboardPage from '@/pages/performance/KPIDashboardPage'
 
+// Admin — integrations
+import IntegrationsPage from '@/pages/admin/IntegrationsPage'
+import IntegrationConfigPage from '@/pages/admin/IntegrationConfigPage'
+import SyncLogsPage from '@/pages/admin/SyncLogsPage'
+
 // Admin — global catalogs
 import AdminCatalogsIndexPage from '@/pages/admin/catalogs/AdminCatalogsIndexPage'
 import AdminCountryPage from '@/pages/admin/catalogs/AdminCountryPage'
@@ -130,6 +135,12 @@ function ProtectedLayout() {
               <Route path="/admin/tenants/create" element={<TenantFormPage />} />
               <Route path="/admin/tenants/:id/edit" element={<TenantFormPage />} />
               <Route path="/admin/tenants/:id/modules" element={<TenantModulesPage />} />
+
+              {/* Admin — integrations */}
+              <Route path="/admin/integrations" element={<IntegrationsPage />} />
+              <Route path="/admin/integrations/create" element={<IntegrationConfigPage />} />
+              <Route path="/admin/integrations/:id/logs" element={<SyncLogsPage />} />
+              <Route path="/admin/integrations/:id" element={<IntegrationConfigPage />} />
 
               {/* Admin — global catalogs */}
               <Route path="/admin/catalogs" element={<AdminCatalogsIndexPage />} />

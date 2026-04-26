@@ -710,3 +710,63 @@ export interface WorkCenter {
   created_at: string
   updated_at: string
 }
+
+// ─── Integrations (Nomiweb Sync) ─────────────────────────────────────────────
+
+export type SyncStatus = 'never' | 'success' | 'error' | 'running'
+
+export interface NomiwebConfig {
+  id: number
+  tenant: string
+  tenant_name: string
+  tenant_slug: string
+  nomiweb_empresa_id: number
+  sync_enabled: boolean
+  last_sync_at: string | null
+  last_sync_at_display: string | null
+  last_sync_status: SyncStatus
+  sync_interval_minutes: number
+}
+
+export interface SyncLog {
+  id: string
+  tenant: string | null
+  tenant_name: string | null
+  direction: 'nomiweb_to_hcm' | 'hcm_to_nomiweb'
+  model_name: string
+  nomiweb_id: string
+  hcm_id: string
+  status: 'success' | 'error' | 'skipped'
+  action: string
+  error_message: string
+  created_at: string
+}
+
+export interface SyncStats {
+  positions?: number
+  cost_centers?: number
+  work_locations?: number
+  work_centers?: number
+  employees?: number
+  contracts?: number
+  created?: number
+  updated?: number
+  skipped?: number
+  errors?: number
+  skipped_sync?: boolean
+}
+
+export interface ConnectionStatus {
+  ok: boolean
+  empresa_name?: string
+  empresa_id?: number
+  error?: string
+}
+
+export interface SyncResult {
+  ok: boolean
+  stats?: SyncStats
+  last_sync_at?: string | null
+  last_sync_status?: SyncStatus
+  error?: string
+}
