@@ -35,6 +35,7 @@ LOCAL_APPS = [
     'apps.personnel',
     'apps.quality',
     'apps.performance',
+    'apps.integrations',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -234,3 +235,9 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
+
+# Nomiweb Integration
+NOMIWEB_BASE_URL = os.environ.get('NOMIWEB_BASE_URL', 'https://jes.nomiweb.com.co')
+NOMIWEB_API_KEY = os.environ.get('NOMIWEB_API_KEY', '')
+NOMIWEB_WEBHOOK_SECRET = os.environ.get('NOMIWEB_WEBHOOK_SECRET', 'hcm-webhook-secret-dev')
+NOMIWEB_SYNC_ENABLED = os.environ.get('NOMIWEB_SYNC_ENABLED', 'False').lower() == 'true'
