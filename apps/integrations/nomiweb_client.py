@@ -140,6 +140,9 @@ class NomiwebClient:
     def get_tipos_cotizante(self):
         return self._get_all_pages('tipos-cotizante/')
 
+    def get_subtipos_cotizante(self):
+        return self._get_all_pages('subtipos-cotizante/')
+
     # ── Nóminas ───────────────────────────────────────────────
     def get_nominas(self, empresa_id, anio=None):
         params = {'empresa': empresa_id}
